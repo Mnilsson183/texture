@@ -19,6 +19,8 @@
 // global var tha is the default settings of terminal
 struct editorConfig{
     struct termios orig_termios;
+    int screenRows;
+    int screenColumns;
 };
 struct editorConfig E;
 
@@ -132,8 +134,15 @@ void editorRefreshScreen(void){
     write(STDOUT_FILENO, "\x1b[H", 3);
 }
 /** INIT**/
+void initEditor(void){
+    if (getWindowSize(&E.screenRows, &E.screenColumns) == -1){
+        terminate("getWindowSize");
+    }
+}
+
 int main(void){
     enableRawMode();
+    initEditor();
     
     while (true){
         editorRefreshScreen();
