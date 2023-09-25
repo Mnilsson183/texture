@@ -86,6 +86,10 @@ void editorProcessKey(void){
     switch (c){
         // exit case
         case CTRL_KEY('q'):
+            // write the 4 byte erase in display to the screen
+            write(STDOUT_FILENO, "\x1b[2J", 4);
+            // move the cursor to the 1,1 position in the terminal
+            write(STDOUT_FILENO, "\x1b[H", 3);
             exit(0);
             break;
         }
