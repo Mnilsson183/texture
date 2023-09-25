@@ -116,7 +116,7 @@ void editorProcessKey(void){
 void editorDrawRows(void){
     // draw a ~ column
     int rows;
-    for(rows = 0; rows < 24; rows++){
+    for(rows = 0; rows < E.screenRows; rows++){
         write(STDOUT_FILENO, "~\r\n", 3);
     }
 }
