@@ -1,4 +1,4 @@
-// INCLUDES
+/** INCLUDES **/
 #include <stdbool.h>
 #include <errno.h>
 #include <ctype.h>
@@ -6,14 +6,14 @@
 #include <stdlib.h>
 #include <termios.h>
 #include <unistd.h>
-// INCLUDES
 
 
-// TERMINAL CONTROLS
+/** DATA VALUES**/
 
 // global var tha is the default settings of terminal
 struct termios orig_termios;
 
+/** TERMINAL**/
 void terminate(const char *s){
     // function to deal with the error outputs
     perror(s);
@@ -59,6 +59,7 @@ void enableRawMode(void)
 }
 // TERMINAL CONTROLS
 
+/** INIT MAIN**/
 int main(void)
 {
     enableRawMode();
