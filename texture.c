@@ -1,3 +1,5 @@
+// basic c text editor
+
 /** INCLUDES **/
 #include <stdbool.h>
 #include <errno.h>
