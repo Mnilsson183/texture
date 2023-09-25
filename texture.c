@@ -35,15 +35,13 @@ void terminate(const char *s){
     exit(1);
 }
 
-void disableRawMode(void)
-{
+void disableRawMode(void){
     // set the terminal attributes to the original values
     if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &E.orig_termios) == -1){
         terminate("tcsetattr");
     }
 }
-void enableRawMode(void)
-{
+void enableRawMode(void){
     // function to enter raw mode of the terminal
 
     // tcgetattr reads the terminal attributes
