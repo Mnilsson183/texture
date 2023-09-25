@@ -59,30 +59,45 @@ void enableRawMode(void)
 }
 // TERMINAL CONTROLS
 
-/** INIT MAIN**/
-int main(void)
-{
-    enableRawMode();
-    
-    while (true)
-    {
-        char c = '\0';
-        if(read(STDIN_FILENO, &c, 1) == -1 && errno != EAGAIN){
+/** INPUT**/
+char editorReadKey() {
+    int nread;
+    char c;
+    // read each key press
+    while ((nread = read(STDIN_FILENO, &c, 1)) != 1) {
+        if (nread == -1 && errno != EAGAIN){
             terminate("read");
         }
+    }
+    // if no issue return each key press
+    return c;
+}
 
-        if(iscntrl(c)){
-            // print the ascii of any control characters followed by a carrige return and a new line characters
-            printf("%d\r\n", c);
-        } else{
-            // print both the ascii and the value followed by a carrige return and a new line characters
-            printf("%d( %c )\r\n", c, c);
-        }
+void editorProcessKey(void){
+    char c = editorReadKey();
 
-        // q is the exit condition of the program
-        if (c == 'q'){
+    switch (c){
+        // exit case
+        case ('q'):
+            exit(0);
             break;
-        }  
+        }
+}
+
+/** OUTPUT **/
+void editorRefreshScreen(void){
+    // write the 4 byte erase in display to the screen
+    write(STDOUT_FILENO, "\x1b[2J", 4);
+    // move the cursor to the 1,1 position in the terminal
+    write(STDOUT_FILENO, "\x1b[H", 3);
+}
+/** INIT**/
+int main(void){
+    enableRawMode();
+    
+    while (true){
+        editorRefreshScreen();
+        editorProcessKey();
     }
     return 0;
 }
