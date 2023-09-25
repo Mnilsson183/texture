@@ -14,7 +14,10 @@
 /** DATA VALUES**/
 
 // global var tha is the default settings of terminal
-struct termios orig_termios;
+struct editorConfig{
+    struct termios orig_termios;
+};
+struct editorConfig E;
 
 /** TERMINAL**/
 void terminate(const char *s){
@@ -30,7 +33,7 @@ void terminate(const char *s){
 void disableRawMode(void)
 {
     // set the terminal attributes to the original values
-    if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1){
+    if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &E.orig_termios) == -1){
         terminate("tcsetattr");
     }
 }
@@ -39,13 +42,13 @@ void enableRawMode(void)
     // function to enter raw mode of the terminal
 
     // tcgetattr reads the terminal attributes
-    if(tcgetattr(STDIN_FILENO, &orig_termios) == -1){
+    if(tcgetattr(STDIN_FILENO, &E.orig_termios) == -1){
         terminate("tcgetattr");
     }
     // atexit disable the raw mode once the program finishes running
     atexit(disableRawMode);
 
-    struct termios raw = orig_termios;
+    struct termios raw = E.orig_termios;
 
     // terminal flags and other specifiers that allow out program to output
     raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
@@ -97,6 +100,7 @@ void editorProcessKey(void){
 
 /** OUTPUT **/
 void editorDrawRows(void){
+    // draw a ~ column
     int rows;
     for(rows = 0; rows < 24; rows++){
         write(STDOUT_FILENO, "~\r\n", 3);
