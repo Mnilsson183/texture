@@ -7,6 +7,9 @@
 #include <termios.h>
 #include <unistd.h>
 
+/** DEFINES**/
+#define CTRL_KEY(key) ((key) & 0x1f)
+
 
 /** DATA VALUES**/
 
@@ -15,6 +18,10 @@ struct termios orig_termios;
 
 /** TERMINAL**/
 void terminate(const char *s){
+    // write the 4 byte erase in display to the screen
+    write(STDOUT_FILENO, "\x1b[2J", 4);
+    // move the cursor to the 1,1 position in the terminal
+    write(STDOUT_FILENO, "\x1b[H", 3);
     // function to deal with the error outputs
     perror(s);
     exit(1);
@@ -78,17 +85,28 @@ void editorProcessKey(void){
 
     switch (c){
         // exit case
-        case ('q'):
+        case CTRL_KEY('q'):
             exit(0);
             break;
         }
 }
 
 /** OUTPUT **/
+void editorDrawRows(void){
+    int rows;
+    for(rows = 0; rows < 24; rows++){
+        write(STDOUT_FILENO, "~\r\n", 3);
+    }
+}
+
 void editorRefreshScreen(void){
     // write the 4 byte erase in display to the screen
     write(STDOUT_FILENO, "\x1b[2J", 4);
     // move the cursor to the 1,1 position in the terminal
+    write(STDOUT_FILENO, "\x1b[H", 3);
+
+    editorDrawRows();
+
     write(STDOUT_FILENO, "\x1b[H", 3);
 }
 /** INIT**/
