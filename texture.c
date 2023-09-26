@@ -328,7 +328,7 @@ void editorDrawRows(struct abuf *ab){
             if (rows == (3 *E.screenRows / 8)){
                 char welcome[80];
                 int welcomelen = snprintf(welcome, sizeof(welcome),
-                "Texture editor -- version %s", TEXTURE_VERSION);
+                "Texture Editor -- Version %s", TEXTURE_VERSION);
                 if (welcomelen > E.screenColumns){
                     welcomelen = E.screenColumns;
                 }
@@ -394,6 +394,7 @@ void initEditor(void){
 int main(int argc, char* argv[]){
     enableRawMode();
     initEditor();
+    // chech the passsed number of args
     if (argc >= 2){
         editorOpen(argv[1]);
     }
