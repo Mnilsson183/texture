@@ -8,6 +8,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
 
@@ -27,6 +28,12 @@ enum editorKey{
     PAGE_DOWN,
 };
 /** DATA **/
+typedef struct erow
+{
+    int size;
+    char* chars;
+} erow;
+
 
 // global var tha is the default settings of terminal
 struct editorConfig{
@@ -36,8 +43,11 @@ struct editorConfig{
     struct termios orig_termios;
     // rows and columns of the terminal
     int screenRows, screenColumns;
+    int numrows;
+    erow row;
 };
 struct editorConfig E;
+
 
 /** TERMINAL**/
 void terminate(const char *s){
@@ -186,6 +196,20 @@ int getWindowSize(int* rows, int* columns){
         return 0;
     }
 }
+
+/* file i/o */
+void editorOpen(){
+    char *line = "hello World!";
+    ssize_t linelen = 13;
+
+    E.row.size = linelen;
+    E.row.chars = malloc(linelen + 1);
+    memcpy(E.row.chars, line, linelen);
+    E.row.chars[linelen] = '\0';
+    E.numrows = 1;
+}
+
+
 /* APPEND BUFFER */
 struct abuf{
     char *b;
@@ -281,26 +305,34 @@ void editorDrawRows(struct abuf *ab){
     // draw a ~ column
     int rows;
     for(rows = 0; rows < E.screenRows; rows++){
-        // put welcome message 1/3 down the screen
-        if (rows == (3 *E.screenRows / 8)){
-            char welcome[80];
-            int welcomelen = snprintf(welcome, sizeof(welcome),
-            "Texture editor -- version %s", TEXTURE_VERSION);
-            if (welcomelen > E.screenColumns){
-                welcomelen = E.screenColumns;
-            }
-            int padding = (E.screenColumns - welcomelen) / 2;
-            if (padding){
+        if (rows >= E.numrows){
+            // put welcome message 1/3 down the screen
+            if (rows == (3 *E.screenRows / 8)){
+                char welcome[80];
+                int welcomelen = snprintf(welcome, sizeof(welcome),
+                "Texture editor -- version %s", TEXTURE_VERSION);
+                if (welcomelen > E.screenColumns){
+                    welcomelen = E.screenColumns;
+                }
+                int padding = (E.screenColumns - welcomelen) / 2;
+                if (padding){
+                    abAppend(ab, "~", 1);
+                    padding--;
+                }
+                while (padding--){
+                    abAppend(ab, " ",  1);
+                }
+                abAppend(ab, welcome, welcomelen);
+            } else{
                 abAppend(ab, "~", 1);
-                padding--;
             }
-            while (padding--){
-                abAppend(ab, " ",  1);
-            }
-            abAppend(ab, welcome, welcomelen);
-        } else{
-            abAppend(ab, "~", 1);
+        } else {
+        int len = E.row.size;
+        if (len > E.screenColumns){
+            len = E.screenColumns;
         }
+        abAppend(ab, E.row.chars, len);
+    }
         abAppend(ab, "\x1b[K", 3);
         if(rows < E.screenRows - 1){
             abAppend(ab, "\r\n", 2);
@@ -334,6 +366,7 @@ void initEditor(void){
     // cursor positions
     E.cx = 0;
     E.cy = 0;
+    E.numrows = 0;
 
     if (getWindowSize(&E.screenRows, &E.screenColumns) == -1){
         terminate("getWindowSize");
@@ -343,6 +376,7 @@ void initEditor(void){
 int main(void){
     enableRawMode();
     initEditor();
+    editorOpen();
     
     while (true){
         editorRefreshScreen();
