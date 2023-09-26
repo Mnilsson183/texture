@@ -13,7 +13,7 @@
 
 /** DEFINES**/
 #define CTRL_KEY(key) ((key) & 0x1f)
-
+#define TEXTURE_VERSION "0.01"
 
 /** DATA VALUES**/
 
@@ -132,7 +132,7 @@ struct abuf{
     int len;
 };
 
-#define ABUF_INIT{NULL, 0}
+#define ABUF_INIT {NULL, 0}
 
 void abAppend(struct abuf *ab, const char *s, int len){
     char* new = realloc(ab->b, ab->len + len);
@@ -167,26 +167,53 @@ void editorProcessKey(void){
 }
 
 /** OUTPUT **/
-void editorDrawRows(void){
+void editorDrawRows(struct abuf *ab){
     // draw a ~ column
     int rows;
     for(rows = 0; rows < E.screenRows; rows++){
-        write(STDOUT_FILENO, "~", 1);
+        // put welcome message 1/3 down the screen
+        if (rows == (3 *E.screenRows / 8)){
+            char welcome[80];
+            int welcomelen = snprintf(welcome, sizeof(welcome),
+            "Texture editor -- version %s", TEXTURE_VERSION);
+            if (welcomelen > E.screenColumns){
+                welcomelen = E.screenColumns;
+            }
+            int padding = (E.screenColumns - welcomelen) / 2;
+            if (padding){
+                abAppend(ab, "~", 1);
+                padding--;
+            }
+            while (padding--){
+                abAppend(ab, " ",  1);
+            }
+            abAppend(ab, welcome, welcomelen);
+        } else{
+            abAppend(ab, "~", 1);
+        }
+        abAppend(ab, "\x1b[K", 3);
         if(rows < E.screenRows - 1){
-            write(STDOUT_FILENO, "\r\n", 2);
+            abAppend(ab, "\r\n", 2);
         }
     }
 }
 
 void editorRefreshScreen(void){
-    // write the 4 byte erase in display to the screen
-    write(STDOUT_FILENO, "\x1b[2J", 4);
+    struct abuf ab = ABUF_INIT;
+
+    // hide the cursor
+    abAppend(&ab, "\x1b[?25l", 6);
     // move the cursor to the 1,1 position in the terminal
-    write(STDOUT_FILENO, "\x1b[H", 3);
+    abAppend(&ab, "\x1b[H", 3);
 
-    editorDrawRows();
+    editorDrawRows(&ab);
 
-    write(STDOUT_FILENO, "\x1b[H", 3);
+    abAppend(&ab, "\x1b[H", 3);
+    // show cursor again
+    abAppend(&ab, "\x1b[?25l", 6);
+
+    write(STDOUT_FILENO, ab.b, ab.len);
+    abFree(&ab);
 }
 /** INIT**/
 void initEditor(void){
