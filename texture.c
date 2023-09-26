@@ -32,11 +32,11 @@ enum editorKey{
     PAGE_DOWN,
 };
 /** DATA **/
-typedef struct erow
+typedef struct editorRow
 {
     int size;
     char* chars;
-} erow;
+} editorRow;
 
 
 // global var tha is the default settings of terminal
@@ -47,8 +47,8 @@ struct editorConfig{
     struct termios orig_termios;
     // rows and columns of the terminal
     int screenRows, screenColumns;
-    int numrows;
-    erow row;
+    int displayLength;
+    editorRow row;
 };
 struct editorConfig E;
 
@@ -225,19 +225,19 @@ void editorOpen(char* filename){
     }
     char *line = NULL;
     size_t lineCap = 0;
-    ssize_t linelen;
-    // read each line from this file into the row erow data struct chars feild
-    linelen = getline(&line, &lineCap, filePath);
-    if (linelen != -1){
+    ssize_t lineLength;
+    // read each line from this file into the row editorRow data struct chars feild
+    lineLength = getline(&line, &lineCap, filePath);
+    if (lineLength != -1){
         // no need to read the carrige return and new line character
-        while ((linelen > 0) && ((line[linelen - 1] == '\r') || (line[linelen - 1] == '\n')))
+        while ((lineLength > 0) && ((line[lineLength - 1] == '\r') || (line[lineLength - 1] == '\n')))
         {
-            linelen--;
-            E.row.size = linelen;
-            E.row.chars = malloc(linelen + 1);
-            memcpy(E.row.chars, line, linelen);
-            E.row.chars[linelen] = '\0';
-            E.numrows = 1;
+            lineLength--;
+            E.row.size = lineLength;
+            E.row.chars = malloc(lineLength + 1);
+            memcpy(E.row.chars, line, lineLength);
+            E.row.chars[lineLength] = '\0';
+            E.displayLength = 1;
         }
         
     }
@@ -247,16 +247,16 @@ void editorOpen(char* filename){
 
 
 /* APPEND BUFFER */
-struct abuf{
+struct appendBuffer{
     // buffer to minimize write to terminal functions
     char *b;
     int len;
 };
 
-#define ABUF_INIT {NULL, 0}
+#define APPEND_INIT {NULL, 0}
 
-void abAppend(struct abuf *ab, const char *s, int len){
-    // append  to the abuf 
+void abAppend(struct appendBuffer *ab, const char *s, int len){
+    // append  to the appendBuffer 
     // give more memory to the information field of the struct
     char* new = realloc(ab->b, ab->len + len);
 
@@ -266,12 +266,12 @@ void abAppend(struct abuf *ab, const char *s, int len){
     }
     // copy the bytes of s to the end of the new data structure
     memcpy(&new[ab->len], s, len);
-    // assign to the old abuf struct the new values with the included information
+    // assign to the old appendBuffer struct the new values with the included information
     ab->b = new;
     ab->len += len;
 }
 
-void abFree(struct abuf *ab){
+void abFree(struct appendBuffer *ab){
     // free the data struct
     free(ab->b);
 }
@@ -348,22 +348,22 @@ void editorProcessKeyPress(void){
 }
 
 /** OUTPUT **/
-void editorDrawRows(struct abuf *ab){
+void editorDrawRows(struct appendBuffer *ab){
     // draw a ~ column
     int rows;
     for(rows = 0; rows < E.screenRows; rows++){
-        if (rows >= E.numrows){
+        if (rows >= E.displayLength){
             // put welcome message 1/3 down the screen
             if (rows == (3 *E.screenRows / 8)){
                 char welcome[80];
-                int welcomelen = snprintf(welcome, sizeof(welcome),
+                int welcomeLength = snprintf(welcome, sizeof(welcome),
                 "Texture Editor -- Version %s", TEXTURE_VERSION);
                 // if screen size is too small to fit the welcome message cut it off
-                if (welcomelen > E.screenColumns){
-                    welcomelen = E.screenColumns;
+                if (welcomeLength > E.screenColumns){
+                    welcomeLength = E.screenColumns;
                 }
                 // put the message in the middle of the screen
-                int padding = (E.screenColumns - welcomelen) / 2;
+                int padding = (E.screenColumns - welcomeLength) / 2;
                 if (padding){
                     abAppend(ab, "~", 1);
                     padding--;
@@ -371,7 +371,7 @@ void editorDrawRows(struct abuf *ab){
                 while (padding--){
                     abAppend(ab, " ",  1);
                 }
-                abAppend(ab, welcome, welcomelen);
+                abAppend(ab, welcome, welcomeLength);
             } else{
                 abAppend(ab, "~", 1);
             }
@@ -383,7 +383,7 @@ void editorDrawRows(struct abuf *ab){
         }
         abAppend(ab, E.row.chars, len);
     }
-        // erase from sursor to end of line
+        // erase from cursor to end of line
         abAppend(ab, "\x1b[K", 3);
         // print to the next line
         if(rows < E.screenRows - 1){
@@ -393,7 +393,7 @@ void editorDrawRows(struct abuf *ab){
 }
 
 void editorRefreshScreen(void){
-    struct abuf ab = ABUF_INIT;
+    struct appendBuffer ab = APPEND_INIT;
 
     // hide the cursor
     abAppend(&ab, "\x1b[?25l", 6);
@@ -418,7 +418,7 @@ void initEditor(void){
     // cursor positions
     E.cx = 0;
     E.cy = 0;
-    E.numrows = 0;
+    E.displayLength = 0;
 
     if (getWindowSize(&E.screenRows, &E.screenColumns) == -1){
         terminate("getWindowSize");
