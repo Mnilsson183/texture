@@ -428,7 +428,7 @@ void initEditor(void){
 int main(int argc, char* argv[]){
     enableRawMode();
     initEditor();
-    // chech the passsed number of args
+    // check the passed number of args
     if (argc >= 2){
         editorOpen(argv[1]);
     }
