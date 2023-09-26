@@ -278,7 +278,7 @@ void abFree(struct abuf *ab){
 
 /** INPUT**/
 void editorMoveCursor(int key){
-    // update the cursor position based on the 
+    // update the cursor position based on the key inputs
     switch (key)
     {
         case ARROW_LEFT:
@@ -317,13 +317,16 @@ void editorProcessKeyPress(void){
             exit(0);
             break;
 
+        // home key sets the x position to the home 
         case HOME_KEY:
             E.cx = 0;
             break;
+        // end key sets the x position to the column before the end of the screen
         case END_KEY:
             E.cx = E.screenColumns - 1;
             break;
 
+        // send the cursor to the top of the column in cases up and down
         case PAGE_UP:
         case PAGE_DOWN:
             {
@@ -355,9 +358,11 @@ void editorDrawRows(struct abuf *ab){
                 char welcome[80];
                 int welcomelen = snprintf(welcome, sizeof(welcome),
                 "Texture Editor -- Version %s", TEXTURE_VERSION);
+                // if screen size is too small to fit the welcome message cut it off
                 if (welcomelen > E.screenColumns){
                     welcomelen = E.screenColumns;
                 }
+                // put the message in the middle of the screen
                 int padding = (E.screenColumns - welcomelen) / 2;
                 if (padding){
                     abAppend(ab, "~", 1);
@@ -371,13 +376,16 @@ void editorDrawRows(struct abuf *ab){
                 abAppend(ab, "~", 1);
             }
         } else {
+            // else write the val in the column
         int len = E.row.size;
         if (len > E.screenColumns){
             len = E.screenColumns;
         }
         abAppend(ab, E.row.chars, len);
     }
+        // erase from sursor to end of line
         abAppend(ab, "\x1b[K", 3);
+        // print to the next line
         if(rows < E.screenRows - 1){
             abAppend(ab, "\r\n", 2);
         }
