@@ -256,44 +256,51 @@ struct abuf{
 #define ABUF_INIT {NULL, 0}
 
 void abAppend(struct abuf *ab, const char *s, int len){
+    // append  to the abuf 
+    // give more memory to the information field of the struct
     char* new = realloc(ab->b, ab->len + len);
 
+    // error check
     if (new == NULL){
         return;
     }
+    // copy the bytes of s to the end of the new data structure
     memcpy(&new[ab->len], s, len);
+    // assign to the old abuf struct the new values with the included information
     ab->b = new;
     ab->len += len;
 }
 
 void abFree(struct abuf *ab){
+    // free the data struct
     free(ab->b);
 }
 
 /** INPUT**/
 void editorMoveCursor(int key){
+    // update the cursor position based on the 
     switch (key)
     {
-    case ARROW_LEFT:
-        if (E.cx != 0){
-            E.cx--;
-        }
-        break;
-    case ARROW_RIGHT:
-        if (E.cx != E.screenColumns - 1){
-            E.cx++;
-        }
-        break;
-    case ARROW_UP:
-        if (E.cy != 0){
-            E.cy--;
-        }
-        break;
-    case ARROW_DOWN:
-        if (E.cy != E.screenRows - 1){
-            E.cy++;
-        }
-        break;
+        case ARROW_LEFT:
+            if (E.cx != 0){
+                E.cx--;
+            }
+            break;
+        case ARROW_RIGHT:
+            if (E.cx != E.screenColumns - 1){
+                E.cx++;
+            }
+            break;
+        case ARROW_UP:
+            if (E.cy != 0){
+                E.cy--;
+            }
+            break;
+        case ARROW_DOWN:
+            if (E.cy != E.screenRows - 1){
+                E.cy++;
+            }
+            break;
     }
 }
 
