@@ -41,7 +41,7 @@ typedef struct erow
 
 // global var tha is the default settings of terminal
 struct editorConfig{
-    // cursor spostions
+    // cursor position
     int cx, cy;
     // default terminal settings
     struct termios orig_termios;
@@ -108,9 +108,12 @@ int editorReadKey() {
             terminate("read");
         }
     }
+    // first char is the first char of ASCII escape code
     if (c == '\x1b'){
+        // sequence of 3 chars first being the ASCII escape code
         char seq[3];
 
+        // read the STDIN and set both the first and second characters in seq
         if (read(STDIN_FILENO, &seq[0], 1) != 1){
             return '\x1b';
         }
@@ -118,12 +121,17 @@ int editorReadKey() {
             return '\x1b';
         }
         
+        // first char being the special char
         if(seq[0] == '['){
+            // check that that seq falls into the bounds of our answer
             if (seq[1] >= '0' && seq[1] <= '9'){
+                // read the STDIN to seq
                 if (read(STDIN_FILENO, &seq[2], 1) != 1){
                     return '\x1b';
                 }
+                // check if last char is ~ denoting a special charater seq
                 if (seq[2] == '~'){
+                    // check the numeric value in the form of a char is equal to the following ASCII codes
                     switch (seq[1])
                     {
                         case '1': return HOME_KEY;
@@ -135,6 +143,7 @@ int editorReadKey() {
                         case '8': return END_KEY;     
                     }
                 }
+            // another check if the keyboard gives value of a alpha form
             } else{
                 switch (seq[1]){
                     case 'A': return ARROW_UP;
@@ -145,6 +154,7 @@ int editorReadKey() {
                     case 'F': return END_KEY;
                 }
             }
+        // if the value of the first char is a 0 also denoting a special charater
         } else if(seq[0] == '0'){
             switch (seq[1]){
                 case 'H': return HOME_KEY;
@@ -159,12 +169,15 @@ int editorReadKey() {
 }
 
 int getCursorPosition(int* rows, int* columns){
+    // man read to get the cursor position
     char buf[32];
     unsigned int i = 0;
+    // write a cursor position report
     if (write(STDOUT_FILENO, "\x1b[6n", 4) != 4){
         return -1;
     }
 
+    // 
     while (i < sizeof(buf) - 1){
         if (read(STDIN_FILENO, &buf[i], 1)){
             break;
@@ -188,10 +201,12 @@ int getCursorPosition(int* rows, int* columns){
 int getWindowSize(int* rows, int* columns){
     struct winsize ws;
 
+    // easy way to do the getCursorPosition function
     if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0){
         if (write(STDOUT_FILENO, "\x1b[999C\x1b[999B", 12) != 12){
             return getCursorPosition(rows, columns);
         }
+        // if the easy way fails use the man one
         editorReadKey();
         return -1;
     } else{
@@ -203,6 +218,7 @@ int getWindowSize(int* rows, int* columns){
 
 /* file i/o */
 void editorOpen(char* filename){
+    // open a file given a file path
     FILE *filePath = fopen(filename, "r");
     if (!filePath){
         terminate("fopen");
@@ -210,8 +226,10 @@ void editorOpen(char* filename){
     char *line = NULL;
     size_t lineCap = 0;
     ssize_t linelen;
+    // read each line from this file into the row erow data struct chars feild
     linelen = getline(&line, &lineCap, filePath);
     if (linelen != -1){
+        // no need to read the carrige return and new line character
         while ((linelen > 0) && ((line[linelen - 1] == '\r') || (line[linelen - 1] == '\n')))
         {
             linelen--;
@@ -230,6 +248,7 @@ void editorOpen(char* filename){
 
 /* APPEND BUFFER */
 struct abuf{
+    // buffer to minimize write to terminal functions
     char *b;
     int len;
 };
