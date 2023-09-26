@@ -19,9 +19,12 @@
 
 // global var tha is the default settings of terminal
 struct editorConfig{
+    // cursor spostions
+    int cx, cy;
+    // default terminal settings
     struct termios orig_termios;
-    int screenRows;
-    int screenColumns;
+    // rows and columns of the terminal
+    int screenRows, screenColumns;
 };
 struct editorConfig E;
 
@@ -150,6 +153,23 @@ void abFree(struct abuf *ab){
 }
 
 /** INPUT**/
+void editorMoveCursor(char key){
+    switch (key)
+    {
+    case 'a':
+        E.cx--;
+        break;
+    case 'd':
+        E.cx++;
+        break;
+    case 'w':
+        E.cy--;
+        break;
+    case 's':
+        E.cy++;
+        break;
+    }
+}
 
 void editorProcessKey(void){
     char c = editorReadKey();
@@ -163,7 +183,13 @@ void editorProcessKey(void){
             write(STDOUT_FILENO, "\x1b[H", 3);
             exit(0);
             break;
-        }
+        case 'w':
+        case 'a':
+        case 's':
+        case 'd':
+            editorMoveCursor(c);
+            break;
+    }
 }
 
 /** OUTPUT **/
@@ -208,6 +234,10 @@ void editorRefreshScreen(void){
 
     editorDrawRows(&ab);
 
+    char buf[32];
+    snprintf(buf, sizeof(buf), "\x1b[%d;%dH]", E.cy + 1, E.cx + 1);
+    abAppend(&ab, buf, strlen(buf));
+
     abAppend(&ab, "\x1b[H", 3);
     // show cursor again
     abAppend(&ab, "\x1b[?25l", 6);
@@ -217,6 +247,10 @@ void editorRefreshScreen(void){
 }
 /** INIT**/
 void initEditor(void){
+    // cursor positions
+    E.cx = 0;
+    E.cy = 0;
+
     if (getWindowSize(&E.screenRows, &E.screenColumns) == -1){
         terminate("getWindowSize");
     }
