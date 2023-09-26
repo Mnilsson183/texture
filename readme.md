@@ -32,3 +32,5 @@ To run the text editor, use the following command:
 ```shell
 make run
 ```
+
+readme written by chat gpt

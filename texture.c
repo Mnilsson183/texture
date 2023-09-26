@@ -1,6 +1,10 @@
 // basic c text editor
 
 /** INCLUDES **/
+#define _DEFAULT_SOURCE
+#define _BSD_SOURCE
+#define _GNU_source
+
 #include <string.h>
 #include <sys/ioctl.h>
 #include <stdbool.h>
@@ -198,15 +202,29 @@ int getWindowSize(int* rows, int* columns){
 }
 
 /* file i/o */
-void editorOpen(){
-    char *line = "hello World!";
-    ssize_t linelen = 13;
-
-    E.row.size = linelen;
-    E.row.chars = malloc(linelen + 1);
-    memcpy(E.row.chars, line, linelen);
-    E.row.chars[linelen] = '\0';
-    E.numrows = 1;
+void editorOpen(char* filename){
+    FILE *filePath = fopen(filename, "r");
+    if (!filePath){
+        terminate("fopen");
+    }
+    char *line = NULL;
+    size_t lineCap = 0;
+    ssize_t linelen;
+    linelen = getline(&line, &lineCap, filePath);
+    if (linelen != -1){
+        while ((linelen > 0) && ((line[linelen - 1] == '\r') || (line[linelen - 1] == '\n')))
+        {
+            linelen--;
+            E.row.size = linelen;
+            E.row.chars = malloc(linelen + 1);
+            memcpy(E.row.chars, line, linelen);
+            E.row.chars[linelen] = '\0';
+            E.numrows = 1;
+        }
+        
+    }
+    free(line);
+    fclose(filePath);
 }
 
 
@@ -373,10 +391,12 @@ void initEditor(void){
     }
 }
 
-int main(void){
+int main(int argc, char* argv[]){
     enableRawMode();
     initEditor();
-    editorOpen();
+    if (argc >= 2){
+        editorOpen(argv[1]);
+    }
     
     while (true){
         editorRefreshScreen();
