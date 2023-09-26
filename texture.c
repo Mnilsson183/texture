@@ -32,8 +32,7 @@ enum editorKey{
     PAGE_DOWN,
 };
 /** DATA **/
-typedef struct editorRow
-{
+typedef struct editorRow{
     int size;
     char* chars;
 } editorRow;
@@ -132,8 +131,7 @@ int editorReadKey() {
                 // check if last char is ~ denoting a special charater seq
                 if (seq[2] == '~'){
                     // check the numeric value in the form of a char is equal to the following ASCII codes
-                    switch (seq[1])
-                    {
+                    switch (seq[1]){
                         case '1': return HOME_KEY;
                         case '3': return DEL_KEY;
                         case '4': return END_KEY;
