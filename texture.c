@@ -42,6 +42,7 @@ typedef struct EditorRow{
 struct EditorConfig{
     // cursor position
     int cx, cy;
+    // screen offsets for moving cursor off screen
     int rowOffset;
     int columnOffset;
     // default terminal settings
@@ -220,6 +221,7 @@ int getWindowSize(int* rows, int* columns){
 void editorAppendRow(char *s, size_t length){
     E.row = realloc(E.row, sizeof(EditorRow) * (E.displayLength + 1));
 
+    // add a row to display
     int at = E.displayLength;
     E.row[at].size = length;
     E.row[at].chars = malloc(length + 1);
@@ -310,6 +312,7 @@ void editorMoveCursor(int key){
             break;
     }
 
+    // snap cursor to the end of line
     row = (E.cy >= E.displayLength) ? NULL : &E.row[E.cy];
     int rowLength = row ? row->size : 0;
     if (E.cx > rowLength){
@@ -362,6 +365,7 @@ void editorProcessKeyPress(void){
 
 /** OUTPUT **/
 void editorScroll(){
+    // moving the screen around the file
     if (E.cy < E.rowOffset){
         E.rowOffset = E.cy;
     }
@@ -377,7 +381,7 @@ void editorScroll(){
 }
 
 void editorDrawRows(struct AppendBuffer *ab){
-    // draw a ~ column
+    // draw stuff
     int row;
     for(row = 0; row < E.screenRows; row++){
         int fileRow = row + E.rowOffset;
