@@ -34,7 +34,9 @@ enum editorKey{
 /** DATA **/
 typedef struct EditorRow{
     int size;
+    int renderSize;
     char* chars;
+    char* render;
 } EditorRow;
 
 
@@ -218,6 +220,33 @@ int getWindowSize(int* rows, int* columns){
 }
 /* row operations */
 
+void editorUpdateRow(EditorRow *row){
+    int tabs;
+    int j;
+    for (j = 0; j < row->size; j++){
+        if (row->chars[j] == '\t'){
+            tabs++;
+        }
+    }
+    free(row->render);
+    row->render = malloc(row->size + (tabs * 7) + 1);
+
+    int tempLength;
+    for (j = 0; j < row->size; j++){
+        if (row->chars[j] == '\t'){
+            row->render[tempLength++] = ' ';
+            while (tempLength % 8 != 0)
+            {
+                row->render[tempLength++] = ' ';
+            }
+        } else{
+            row->render[tempLength++] = row->chars[j];
+        }
+    }
+    row->render[tempLength] = '\0';
+    row->renderSize = tempLength;
+}
+
 void editorAppendRow(char *s, size_t length){
     E.row = realloc(E.row, sizeof(EditorRow) * (E.displayLength + 1));
 
@@ -227,6 +256,11 @@ void editorAppendRow(char *s, size_t length){
     E.row[at].chars = malloc(length + 1);
     memcpy(E.row[at].chars, s, length);
     E.row[at].chars[length] = '\0';
+
+    E.row[at].renderSize = 0;
+    E.row[at].chars = NULL;
+    editorUpdateRow(&E.row[at]);
+
     E.displayLength++;
 }
 
@@ -298,6 +332,10 @@ void editorMoveCursor(int key){
         case ARROW_RIGHT:
             if (row && E.cx < row->size){
                 E.cx++;
+            // if go right on a the end of line
+            } else if(row && E.cx == row->size){
+                E.cy++;
+                E.cx = 0;
             }
             break;
         case ARROW_UP:
@@ -410,14 +448,14 @@ void editorDrawRows(struct AppendBuffer *ab){
                 }
             } else {
                 // else write the val in the column
-            int length = E.row[fileRow].size - E.columnOffset;
+            int length = E.row[fileRow].renderSize - E.columnOffset;
             if (length < 0){
                 length = 0;
             }
             if (length > E.screenColumns){
                 length = E.screenColumns;
             }
-            abAppend(ab, &E.row[fileRow].chars[E.columnOffset], length);
+            abAppend(ab, &E.row[fileRow].render[E.columnOffset], length);
         }
         // erase from cursor to end of line
         abAppend(ab, "\x1b[K", 3);
@@ -446,7 +484,7 @@ void editorRefreshScreen(void){
 
     abAppend(&ab, "\x1b[H", 3);
     // show cursor again
-    abAppend(&ab, "\x1b[?25l", 6);
+    abAppend(&ab, "\x1b[?25h", 6);
 
     write(STDOUT_FILENO, ab.b, ab.len);
     abFree(&ab);
