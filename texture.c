@@ -213,6 +213,7 @@ int getWindowSize(int* rows, int* columns){
         return 0;
     }
 }
+/* row operations */
 
 void editorAppendRow(char *s, size_t length){
     E.row = realloc(E.row, sizeof(editorRow) * (E.displayLength + 1));
@@ -236,15 +237,13 @@ void editorOpen(char* filename){
     size_t lineCap = 0;
     ssize_t lineLength;
     // read each line from this file into the row editorRow data struct chars feild
-    lineLength = getline(&line, &lineCap, filePath);
-    if (lineLength != -1){
+    while((lineLength = getline(&line, &lineCap, filePath)) != -1){
         // no need to read the carrige return and new line character
         while ((lineLength > 0) && ((line[lineLength - 1] == '\r') || (line[lineLength - 1] == '\n')))
         {
             lineLength--;
             editorAppendRow(line, lineLength);
         }
-        
     }
     free(line);
     fclose(filePath);
@@ -358,7 +357,7 @@ void editorDrawRows(struct appendBuffer *ab){
     for(rows = 0; rows < E.screenRows; rows++){
         if (rows >= E.displayLength){
             // put welcome message 1/3 down the screen
-            if ((rows == (3 *E.screenRows / 8)) && E.displayLength == 0){
+            if ((rows == E.screenRows / 3) && (E.displayLength == 0)){
                 char welcome[80];
                 int welcomeLength = snprintf(welcome, sizeof(welcome),
                 "Texture Editor -- Version %s", TEXTURE_VERSION);
@@ -381,11 +380,11 @@ void editorDrawRows(struct appendBuffer *ab){
             }
         } else {
             // else write the val in the column
-        int len = E.row[rows].size;
-        if (len > E.screenColumns){
-            len = E.screenColumns;
+        int length = E.row[rows].size;
+        if (length > E.screenColumns){
+            length = E.screenColumns;
         }
-        abAppend(ab, E.row[rows].chars, len);
+        abAppend(ab, E.row[rows].chars, length);
     }
         // erase from cursor to end of line
         abAppend(ab, "\x1b[K", 3);
