@@ -47,7 +47,7 @@ struct editorConfig{
     // rows and columns of the terminal
     int screenRows, screenColumns;
     int displayLength;
-    editorRow row;
+    editorRow* row;
 };
 struct editorConfig E;
 
@@ -214,6 +214,17 @@ int getWindowSize(int* rows, int* columns){
     }
 }
 
+void editorAppendRow(char *s, size_t length){
+    E.row = realloc(E.row, sizeof(editorRow) * (E.displayLength + 1));
+
+    int at = E.displayLength;
+    E.row[at].size = length;
+    E.row[at].chars = malloc(length + 1);
+    memcpy(E.row[at].chars, s, length);
+    E.row[at].chars[length] = '\0';
+    E.displayLength++;
+}
+
 /* file i/o */
 void editorOpen(char* filename){
     // open a file given a file path
@@ -231,18 +242,13 @@ void editorOpen(char* filename){
         while ((lineLength > 0) && ((line[lineLength - 1] == '\r') || (line[lineLength - 1] == '\n')))
         {
             lineLength--;
-            E.row.size = lineLength;
-            E.row.chars = malloc(lineLength + 1);
-            memcpy(E.row.chars, line, lineLength);
-            E.row.chars[lineLength] = '\0';
-            E.displayLength = 1;
+            editorAppendRow(line, lineLength);
         }
         
     }
     free(line);
     fclose(filePath);
 }
-
 
 /* APPEND BUFFER */
 struct appendBuffer{
@@ -352,7 +358,7 @@ void editorDrawRows(struct appendBuffer *ab){
     for(rows = 0; rows < E.screenRows; rows++){
         if (rows >= E.displayLength){
             // put welcome message 1/3 down the screen
-            if (rows == (3 *E.screenRows / 8)){
+            if ((rows == (3 *E.screenRows / 8)) && E.displayLength == 0){
                 char welcome[80];
                 int welcomeLength = snprintf(welcome, sizeof(welcome),
                 "Texture Editor -- Version %s", TEXTURE_VERSION);
@@ -375,11 +381,11 @@ void editorDrawRows(struct appendBuffer *ab){
             }
         } else {
             // else write the val in the column
-        int len = E.row.size;
+        int len = E.row[rows].size;
         if (len > E.screenColumns){
             len = E.screenColumns;
         }
-        abAppend(ab, E.row.chars, len);
+        abAppend(ab, E.row[rows].chars, len);
     }
         // erase from cursor to end of line
         abAppend(ab, "\x1b[K", 3);
@@ -417,6 +423,7 @@ void initEditor(void){
     E.cx = 0;
     E.cy = 0;
     E.displayLength = 0;
+    E.row = NULL;
 
     if (getWindowSize(&E.screenRows, &E.screenColumns) == -1){
         terminate("getWindowSize");
