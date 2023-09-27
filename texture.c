@@ -32,24 +32,26 @@ enum editorKey{
     PAGE_DOWN,
 };
 /** DATA **/
-typedef struct editorRow{
+typedef struct EditorRow{
     int size;
     char* chars;
-} editorRow;
+} EditorRow;
 
 
 // global var tha is the default settings of terminal
-struct editorConfig{
+struct EditorConfig{
     // cursor position
     int cx, cy;
+    int rowOffset;
+    int columnOffset;
     // default terminal settings
     struct termios orig_termios;
     // rows and columns of the terminal
     int screenRows, screenColumns;
     int displayLength;
-    editorRow* row;
+    EditorRow* row;
 };
-struct editorConfig E;
+struct EditorConfig E;
 
 
 /** TERMINAL**/
@@ -216,7 +218,7 @@ int getWindowSize(int* rows, int* columns){
 /* row operations */
 
 void editorAppendRow(char *s, size_t length){
-    E.row = realloc(E.row, sizeof(editorRow) * (E.displayLength + 1));
+    E.row = realloc(E.row, sizeof(EditorRow) * (E.displayLength + 1));
 
     int at = E.displayLength;
     E.row[at].size = length;
@@ -250,7 +252,7 @@ void editorOpen(char* filename){
 }
 
 /* APPEND BUFFER */
-struct appendBuffer{
+struct AppendBuffer{
     // buffer to minimize write to terminal functions
     char *b;
     int len;
@@ -258,7 +260,7 @@ struct appendBuffer{
 
 #define APPEND_INIT {NULL, 0}
 
-void abAppend(struct appendBuffer *ab, const char *s, int len){
+void abAppend(struct AppendBuffer *ab, const char *s, int len){
     // append  to the appendBuffer 
     // give more memory to the information field of the struct
     char* new = realloc(ab->b, ab->len + len);
@@ -274,13 +276,15 @@ void abAppend(struct appendBuffer *ab, const char *s, int len){
     ab->len += len;
 }
 
-void abFree(struct appendBuffer *ab){
+void abFree(struct AppendBuffer *ab){
     // free the data struct
     free(ab->b);
 }
 
 /** INPUT**/
 void editorMoveCursor(int key){
+    EditorRow* row = (E.cy >= E.displayLength) ? NULL: &E.row[E.cy];
+    
     // update the cursor position based on the key inputs
     switch (key)
     {
@@ -290,7 +294,7 @@ void editorMoveCursor(int key){
             }
             break;
         case ARROW_RIGHT:
-            if (E.cx != E.screenColumns - 1){
+            if (row && E.cx < row->size){
                 E.cx++;
             }
             break;
@@ -300,10 +304,16 @@ void editorMoveCursor(int key){
             }
             break;
         case ARROW_DOWN:
-            if (E.cy != E.screenRows - 1){
+            if (E.cy < E.displayLength){
                 E.cy++;
             }
             break;
+    }
+
+    row = (E.cy >= E.displayLength) ? NULL : &E.row[E.cy];
+    int rowLength = row ? row->size : 0;
+    if (E.cx > rowLength){
+        E.cx = rowLength;
     }
 }
 
@@ -351,52 +361,73 @@ void editorProcessKeyPress(void){
 }
 
 /** OUTPUT **/
-void editorDrawRows(struct appendBuffer *ab){
-    // draw a ~ column
-    int rows;
-    for(rows = 0; rows < E.screenRows; rows++){
-        if (rows >= E.displayLength){
-            // put welcome message 1/3 down the screen
-            if ((rows == E.screenRows / 3) && (E.displayLength == 0)){
-                char welcome[80];
-                int welcomeLength = snprintf(welcome, sizeof(welcome),
-                "Texture Editor -- Version %s", TEXTURE_VERSION);
-                // if screen size is too small to fit the welcome message cut it off
-                if (welcomeLength > E.screenColumns){
-                    welcomeLength = E.screenColumns;
-                }
-                // put the message in the middle of the screen
-                int padding = (E.screenColumns - welcomeLength) / 2;
-                if (padding){
-                    abAppend(ab, "~", 1);
-                    padding--;
-                }
-                while (padding--){
-                    abAppend(ab, " ",  1);
-                }
-                abAppend(ab, welcome, welcomeLength);
-            } else{
-                abAppend(ab, "~", 1);
-            }
-        } else {
-            // else write the val in the column
-        int length = E.row[rows].size;
-        if (length > E.screenColumns){
-            length = E.screenColumns;
-        }
-        abAppend(ab, E.row[rows].chars, length);
+void editorScroll(){
+    if (E.cy < E.rowOffset){
+        E.rowOffset = E.cy;
     }
+    if (E.cy >= E.rowOffset + E.screenRows){
+        E.rowOffset = E.cy - E.screenRows + 1;
+    }
+    if (E.cx < E.columnOffset){
+        E.columnOffset = E.cx;
+    }
+    if (E.cx >= E.columnOffset + E.screenColumns){
+        E.columnOffset = E.cx - E.screenColumns + 1;
+    }
+}
+
+void editorDrawRows(struct AppendBuffer *ab){
+    // draw a ~ column
+    int row;
+    for(row = 0; row < E.screenRows; row++){
+        int fileRow = row + E.rowOffset;
+        if (fileRow >= E.displayLength){
+                // put welcome message 1/3 down the screen
+                if ((row == E.screenRows / 3) && (E.displayLength == 0)){
+                    char welcome[80];
+                    int welcomeLength = snprintf(welcome, sizeof(welcome),
+                    "Texture Editor -- Version %s", TEXTURE_VERSION);
+                    // if screen size is too small to fit the welcome message cut it off
+                    if (welcomeLength > E.screenColumns){
+                        welcomeLength = E.screenColumns;
+                    }
+                    // put the message in the middle of the screen
+                    int padding = (E.screenColumns - welcomeLength) / 2;
+                    if (padding){
+                        abAppend(ab, "~", 1);
+                        padding--;
+                    }
+                    while (padding--){
+                        abAppend(ab, " ",  1);
+                    }
+                    abAppend(ab, welcome, welcomeLength);
+                } else{
+                    abAppend(ab, "~", 1);
+                }
+            } else {
+                // else write the val in the column
+            int length = E.row[fileRow].size - E.columnOffset;
+            if (length < 0){
+                length = 0;
+            }
+            if (length > E.screenColumns){
+                length = E.screenColumns;
+            }
+            abAppend(ab, &E.row[fileRow].chars[E.columnOffset], length);
+        }
         // erase from cursor to end of line
         abAppend(ab, "\x1b[K", 3);
         // print to the next line
-        if(rows < E.screenRows - 1){
+        if(row < E.screenRows - 1){
             abAppend(ab, "\r\n", 2);
         }
     }
 }
 
 void editorRefreshScreen(void){
-    struct appendBuffer ab = APPEND_INIT;
+    editorScroll();
+
+    struct AppendBuffer ab = APPEND_INIT;
 
     // hide the cursor
     abAppend(&ab, "\x1b[?25l", 6);
@@ -406,7 +437,7 @@ void editorRefreshScreen(void){
     editorDrawRows(&ab);
 
     char buf[32];
-    snprintf(buf, sizeof(buf), "\x1b[%d;%dH]", E.cy + 1, E.cx + 1);
+    snprintf(buf, sizeof(buf), "\x1b[%d;%dH]", (E.cy - E.rowOffset) + 1, (E.cx - E.columnOffset) + 1);
     abAppend(&ab, buf, strlen(buf));
 
     abAppend(&ab, "\x1b[H", 3);
@@ -421,6 +452,8 @@ void initEditor(void){
     // cursor positions
     E.cx = 0;
     E.cy = 0;
+    E.rowOffset = 0;
+    E.columnOffset = 0;
     E.displayLength = 0;
     E.row = NULL;
 
