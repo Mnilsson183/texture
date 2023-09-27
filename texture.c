@@ -19,6 +19,7 @@
 /** DEFINES**/
 #define CTRL_KEY(key) ((key) & 0x1f)
 #define TEXTURE_VERSION "0.01"
+#define TEXTURE_TAB_STOP 8
 
 enum editorKey{
     ARROW_LEFT = 1000,
@@ -229,13 +230,13 @@ void editorUpdateRow(EditorRow *row){
         }
     }
     free(row->render);
-    row->render = malloc(row->size + (tabs * 7) + 1);
+    row->render = malloc(row->size + tabs * (TEXTURE_TAB_STOP + 1) + 1);
 
     int tempLength;
     for (j = 0; j < row->size; j++){
         if (row->chars[j] == '\t'){
             row->render[tempLength++] = ' ';
-            while (tempLength % 8 != 0)
+            while (tempLength % TEXTURE_TAB_STOP != 0)
             {
                 row->render[tempLength++] = ' ';
             }
@@ -247,7 +248,7 @@ void editorUpdateRow(EditorRow *row){
     row->renderSize = tempLength;
 }
 
-void editorAppendRow(char *s, size_t length){
+void editorAppendRow(char* s, size_t length){
     E.row = realloc(E.row, sizeof(EditorRow) * (E.displayLength + 1));
 
     // add a row to display
@@ -258,7 +259,7 @@ void editorAppendRow(char *s, size_t length){
     E.row[at].chars[length] = '\0';
 
     E.row[at].renderSize = 0;
-    E.row[at].chars = NULL;
+    E.row[at].render = NULL;
     editorUpdateRow(&E.row[at]);
 
     E.displayLength++;
@@ -479,10 +480,9 @@ void editorRefreshScreen(void){
     editorDrawRows(&ab);
 
     char buf[32];
-    snprintf(buf, sizeof(buf), "\x1b[%d;%dH]", (E.cy - E.rowOffset) + 1, (E.cx - E.columnOffset) + 1);
+    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowOffset) + 1, (E.cx - E.columnOffset) + 1);
     abAppend(&ab, buf, strlen(buf));
 
-    abAppend(&ab, "\x1b[H", 3);
     // show cursor again
     abAppend(&ab, "\x1b[?25h", 6);
 

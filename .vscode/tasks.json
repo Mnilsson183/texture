@@ -9,7 +9,7 @@
                 "-g",
                 "${file}",
                 "-o",
-                "${fileDirname}/${fileBasenameNoExtension}"
+                "build/${fileBasenameNoExtension}"
             ],
             "options": {
                 "cwd": "${fileDirname}"
