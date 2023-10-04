@@ -7,6 +7,7 @@ This is a basic C text editor that allows you to edit text in your terminal. It 
 - [Overview](#overview)
 - [Build](#build)
 - [Run](#run)
+- [Using](#using)
 
 ## Overview
 
@@ -32,5 +33,9 @@ To run the text editor, use the following command:
 ```shell
 make run
 ```
+
+## Using
+
+The default quit shorcut is Ctrl - Q
 
 created my Morgan Nilsson guthub: mnilsson183
