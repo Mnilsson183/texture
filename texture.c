@@ -18,6 +18,8 @@
 
 /** DEFINES**/
 #define CTRL_KEY(key) ((key) & 0x1f)
+
+/* editor options */
 #define TEXTURE_VERSION "0.01"
 #define TEXTURE_TAB_STOP 8
 
@@ -41,10 +43,11 @@ typedef struct EditorRow{
 } EditorRow;
 
 
-// global var tha is the default settings of terminal
+// global var that is the default settings of terminal
 struct EditorConfig{
     // cursor position
     int cx, cy;
+    int rx;
     // screen offsets for moving cursor off screen
     int rowOffset;
     int columnOffset;
@@ -221,8 +224,20 @@ int getWindowSize(int* rows, int* columns){
 }
 /* row operations */
 
+int editorRowCxtoRx(EditorRow *row, int cx){
+    int rx = 0;
+    int j;
+    for(j = 0; j < cx; j++){
+        if (row->chars[j] == 't'){
+            rx += (TEXTURE_TAB_STOP - 1) - (rx % TEXTURE_TAB_STOP);
+        }
+        rx++;
+    }
+    return rx;
+}
+
 void editorUpdateRow(EditorRow *row){
-    int tabs;
+    int tabs = 0;
     int j;
     for (j = 0; j < row->size; j++){
         if (row->chars[j] == '\t'){
@@ -230,14 +245,13 @@ void editorUpdateRow(EditorRow *row){
         }
     }
     free(row->render);
-    row->render = malloc(row->size + tabs * (TEXTURE_TAB_STOP + 1) + 1);
+    row->render = malloc(row->size + ( tabs * (TEXTURE_TAB_STOP - 1)) + 1);
 
-    int tempLength;
+    int tempLength = 0;
     for (j = 0; j < row->size; j++){
         if (row->chars[j] == '\t'){
             row->render[tempLength++] = ' ';
-            while (tempLength % TEXTURE_TAB_STOP != 0)
-            {
+            while (tempLength % TEXTURE_TAB_STOP != 0){
                 row->render[tempLength++] = ' ';
             }
         } else{
@@ -278,7 +292,8 @@ void editorOpen(char* filename){
     // read each line from this file into the row editorRow data struct chars feild
     while((lineLength = getline(&line, &lineCap, filePath)) != -1){
         // no need to read the carrige return and new line character
-        while ((lineLength > 0) && ((line[lineLength - 1] == '\r') || (line[lineLength - 1] == '\n')))
+        while ((lineLength > 0) && ((line[lineLength - 1] == '\r') || 
+                                    (line[lineLength - 1] == '\n')))
         {
             lineLength--;
             editorAppendRow(line, lineLength);
@@ -328,6 +343,9 @@ void editorMoveCursor(int key){
         case ARROW_LEFT:
             if (E.cx != 0){
                 E.cx--;
+            } else if(E.cy > 0){
+                E.cy--;
+                E.cx = E.row[E.cy].size;
             }
             break;
         case ARROW_RIGHT:
@@ -405,17 +423,21 @@ void editorProcessKeyPress(void){
 /** OUTPUT **/
 void editorScroll(){
     // moving the screen around the file
+    if (E.cy < E.displayLength){
+        E.rx = editorRowCxtoRx(&E.row[E.cy], E.cx);
+    }
+
     if (E.cy < E.rowOffset){
         E.rowOffset = E.cy;
     }
     if (E.cy >= E.rowOffset + E.screenRows){
         E.rowOffset = E.cy - E.screenRows + 1;
     }
-    if (E.cx < E.columnOffset){
-        E.columnOffset = E.cx;
+    if (E.rx < E.columnOffset){
+        E.columnOffset = E.rx;
     }
-    if (E.cx >= E.columnOffset + E.screenColumns){
-        E.columnOffset = E.cx - E.screenColumns + 1;
+    if (E.rx >= E.columnOffset + E.screenColumns){
+        E.columnOffset = E.rx - E.screenColumns + 1;
     }
 }
 
@@ -426,7 +448,7 @@ void editorDrawRows(struct AppendBuffer *ab){
         int fileRow = row + E.rowOffset;
         if (fileRow >= E.displayLength){
                 // put welcome message 1/3 down the screen
-                if ((row == E.screenRows / 3) && (E.displayLength == 0)){
+                if ((E.displayLength == 0) && (row == E.screenRows / 3)){
                     char welcome[80];
                     int welcomeLength = snprintf(welcome, sizeof(welcome),
                     "Texture Editor -- Version %s", TEXTURE_VERSION);
@@ -449,21 +471,21 @@ void editorDrawRows(struct AppendBuffer *ab){
                 }
             } else {
                 // else write the val in the column
-            int length = E.row[fileRow].renderSize - E.columnOffset;
-            if (length < 0){
-                length = 0;
+                int length = E.row[fileRow].renderSize - E.columnOffset;
+                if (length < 0){
+                    length = 0;
+                }
+                if (length > E.screenColumns){
+                    length = E.screenColumns;
+                }
+                abAppend(ab, &E.row[fileRow].render[E.columnOffset], length);
             }
-            if (length > E.screenColumns){
-                length = E.screenColumns;
+            // erase from cursor to end of line
+            abAppend(ab, "\x1b[K", 3);
+            // print to the next line
+            if(row < E.screenRows - 1){
+                abAppend(ab, "\r\n", 2);
             }
-            abAppend(ab, &E.row[fileRow].render[E.columnOffset], length);
-        }
-        // erase from cursor to end of line
-        abAppend(ab, "\x1b[K", 3);
-        // print to the next line
-        if(row < E.screenRows - 1){
-            abAppend(ab, "\r\n", 2);
-        }
     }
 }
 
@@ -480,7 +502,8 @@ void editorRefreshScreen(void){
     editorDrawRows(&ab);
 
     char buf[32];
-    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowOffset) + 1, (E.cx - E.columnOffset) + 1);
+    snprintf(buf, sizeof(buf), "\x1b[%d;%dH",   (E.cy - E.rowOffset) + 1, 
+                                                (E.rx - E.columnOffset) + 1);
     abAppend(&ab, buf, strlen(buf));
 
     // show cursor again
@@ -489,11 +512,12 @@ void editorRefreshScreen(void){
     write(STDOUT_FILENO, ab.b, ab.len);
     abFree(&ab);
 }
-/** INIT**/
+/** INIT **/
 void initEditor(void){
     // cursor positions
     E.cx = 0;
     E.cy = 0;
+    E.rx = 0;
     E.rowOffset = 0;
     E.columnOffset = 0;
     E.displayLength = 0;
