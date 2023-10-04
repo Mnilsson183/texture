@@ -479,6 +479,18 @@ void editorDrawStatusBar(struct AppendBuffer *ab){
         length++;
     }
     abAppend(ab, "\x1b[m", 3);
+    abAppend(ab, "\r\n", 2);
+}
+
+void editorDrawMessageBar(struct AppendBuffer *ab){
+    abAppend(ab, "\x1b[K", 3);
+    int messageLength = strlen(E.statusMessage);
+    if (messageLength > E.screenColumns){
+        messageLength = E.screenColumns;
+    }
+    if (messageLength && time(NULL) - E.statusMessage_time < 5){
+        abAppend(ab, E.statusMessage, messageLength);
+    }
 }
 
 
@@ -540,6 +552,7 @@ void editorRefreshScreen(void){
 
     editorDrawRows(&ab);
     editorDrawStatusBar(&ab);
+    editorDrawMessageBar(&ab);
 
     char buf[32];
     snprintf(buf, sizeof(buf), "\x1b[%d;%dH",   (E.cy - E.rowOffset) + 1, 
@@ -578,7 +591,7 @@ void initEditor(void){
     if (getWindowSize(&E.screenRows, &E.screenColumns) == -1){
         terminate("getWindowSize");
     }
-    E.screenRows -= 1;
+    E.screenRows -= 2;
 }
 
 int main(int argc, char* argv[]){
