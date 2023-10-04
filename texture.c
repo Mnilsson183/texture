@@ -396,13 +396,24 @@ void editorProcessKeyPress(void){
             break;
         // end key sets the x position to the column before the end of the screen
         case END_KEY:
-            E.cx = E.screenColumns - 1;
+            if (E.cy < E.displayLength){
+                E.cx = E.row[E.cy].size;
+            }
             break;
 
         // send the cursor to the top of the column in cases up and down
         case PAGE_UP:
         case PAGE_DOWN:
             {
+                if (c == PAGE_UP){
+                    E.cy = E.rowOffset;
+                } else if(c == PAGE_DOWN){
+                    E.cy = E.rowOffset + E.screenRows - 1;
+                }
+
+                if (E.cy > E.displayLength){
+                    E.cy = E.displayLength;
+                }
 
                 int times = E.screenRows;
                 while(times--){
