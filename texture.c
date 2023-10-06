@@ -460,39 +460,6 @@ void editorScroll(){
     }
 }
 
-void editorDrawStatusBar(struct AppendBuffer *ab){
-    abAppend(ab, "\1xb[7m", 4);
-    char status[80], rstatus[80];
-    int length = snprintf(status, sizeof(status), "%.20s - %d lines", 
-        E.fileName ? E.fileName : "[No Name]", E.displayLength);
-    int rlen = snprintf(rstatus, sizeof(rstatus), "%d%d", E.cy + 1, E.displayLength);
-    if(length > E.screenColumns){
-        length = E.screenColumns;
-    }
-    abAppend(ab , status, length);
-    while(length < E.screenColumns){
-        if (E.screenColumns - length == rlen){
-            abAppend(ab, rstatus, rlen);
-            break;
-        }
-        abAppend(ab, " ", 1);
-        length++;
-    }
-    abAppend(ab, "\x1b[m", 3);
-    abAppend(ab, "\r\n", 2);
-}
-
-void editorDrawMessageBar(struct AppendBuffer *ab){
-    abAppend(ab, "\x1b[K", 3);
-    int messageLength = strlen(E.statusMessage);
-    if (messageLength > E.screenColumns){
-        messageLength = E.screenColumns;
-    }
-    if (messageLength && time(NULL) - E.statusMessage_time < 5){
-        abAppend(ab, E.statusMessage, messageLength);
-    }
-}
-
 
 void editorDrawRows(struct AppendBuffer *ab){
     // draw stuff
@@ -537,6 +504,40 @@ void editorDrawRows(struct AppendBuffer *ab){
             abAppend(ab, "\x1b[K", 3);
             // print to the next line
             abAppend(ab, "\r\n", 2);
+    }
+}
+
+void editorDrawStatusBar(struct AppendBuffer *ab){
+    abAppend(ab, "\x1b[7m", 4);
+    char status[80], rstatus[80];
+    int length = snprintf(status, sizeof(status), "%.20s - %d lines", 
+        E.fileName ? E.fileName : "[No Name]", E.displayLength);
+    int rlen = snprintf(rstatus, sizeof(rstatus), "%d%d", E.cy + 1, E.displayLength);
+    if(length > E.screenColumns){
+        length = E.screenColumns;
+    }
+    abAppend(ab , status, length);
+    while(length < E.screenColumns){
+        if (E.screenColumns - length == rlen){
+            abAppend(ab, rstatus, rlen);
+            break;
+        } else{
+            abAppend(ab, " ", 1);
+            length++;
+        }
+    }
+    abAppend(ab, "\x1b[m", 3);
+    abAppend(ab, "\r\n", 2);
+}
+
+void editorDrawMessageBar(struct AppendBuffer *ab){
+    abAppend(ab, "\x1b[K", 3);
+    int messageLength = strlen(E.statusMessage);
+    if (messageLength > E.screenColumns){
+        messageLength = E.screenColumns;
+    }
+    if (messageLength && time(NULL) - E.statusMessage_time < 5){
+        abAppend(ab, E.statusMessage, messageLength);
     }
 }
 
@@ -591,7 +592,7 @@ void initEditor(void){
     if (getWindowSize(&E.screenRows, &E.screenColumns) == -1){
         terminate("getWindowSize");
     }
-    E.screenRows -= 2;
+    E.screenRows = E.screenRows - 2;
 }
 
 int main(int argc, char* argv[]){
