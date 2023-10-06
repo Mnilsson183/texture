@@ -603,7 +603,7 @@ int main(int argc, char* argv[]){
         editorOpen(argv[1]);
     }
 
-    editorSetStatusMessage("HELP: Ctrl-Q to quit");
+    editorSetStatusMessage("HELP: Ctrl-q to quit");
     
     while (true){
         editorRefreshScreen();
