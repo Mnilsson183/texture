@@ -12,6 +12,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
@@ -26,6 +27,7 @@
 #define TEXTURE_TAB_STOP 8
 
 enum editorKey{
+    BACKSPACE = 127,
     ARROW_LEFT = 1000,
     ARROW_RIGHT,
     ARROW_UP,
@@ -306,6 +308,25 @@ void editorInsertChar(int c){
 
 
 /* file i/o */
+
+char* editorRowsToString(int* buflen){
+    int totlen = 0;
+    int j = 0;
+    for(j = 0; j < E.screenRows; j++){
+        totlen += E.row[j].size + 1;
+    }
+    *buflen = totlen;
+
+    char *buf = malloc(totlen);
+    char *p = buf;
+    for(j = 0; j < E.displayLength; j++){
+        memcpy(p, E.row[j].chars, E.row[j].size);
+        p += E.row[j].size;
+        *p = '\n';
+        p++;
+    }
+    return buf;
+}
 void editorOpen(char* filename){
     // open a file given a file path
     free(E.fileName);
@@ -330,6 +351,19 @@ void editorOpen(char* filename){
     }
     free(line);
     fclose(filePath);
+}
+
+void editorSave(){
+    if (E.fileName == NULL){
+        return;
+    }
+
+    int len;char *buf = editorRowsToString(&len);
+    int fd = open(E.fileName, O_RDWR | O_CREAT, 0644);
+    ftruncate(fd, len);
+    write(fd, buf, len);
+    close(fd);
+    free(buf);
 }
 
 /* APPEND BUFFER */
@@ -410,6 +444,10 @@ void editorProcessKeyPress(void){
     int c = editorReadKey();
 
     switch (c){
+        case '\r':
+            // not done
+            break;
+
         // exit case
         case CTRL_KEY('q'):
             // write the 4 byte erase in display to the screen
@@ -429,6 +467,13 @@ void editorProcessKeyPress(void){
                 E.cx = E.row[E.cy].size;
             }
             break;
+
+        case BACKSPACE:
+        case CTRL_KEY('h'):
+        case DEL_KEY:
+            // do
+            break;
+
 
         // send the cursor to the top of the column in cases up and down
         case PAGE_UP:
@@ -456,6 +501,14 @@ void editorProcessKeyPress(void){
         case ARROW_LEFT:
         case ARROW_RIGHT:
             editorMoveCursor(c);
+            break;
+
+        case CTRL_KEY('l'):
+        case '\x1b':
+            break;
+
+        default:
+            editorInsertChar(c);
             break;
     }
 }

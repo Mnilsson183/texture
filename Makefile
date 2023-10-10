@@ -4,3 +4,6 @@ texture: texture.c
 
 run:
 	./build/texture texture.c
+
+valgrind:
+	valgrind -s --leak-check=full --show-leak-kinds=all build/texture texture.c 
