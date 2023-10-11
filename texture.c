@@ -38,6 +38,10 @@ enum editorKey{
     PAGE_UP,
     PAGE_DOWN,
 };
+/* prototypes */
+void editorSetStatusMessage(const char *fmt, ...);
+
+
 /** DATA **/
 typedef struct EditorRow{
     int size;
@@ -354,14 +358,6 @@ void editorOpen(char* filename){
     fclose(filePath);
 }
 
-void editorSetStatusMessage(const char *fmt, ...){
-    va_list ap;
-    va_start (ap, fmt);
-    vsnprintf(E.statusMessage, sizeof(E.statusMessage), fmt, ap);
-    va_end(ap);
-    E.statusMessage_time = time(NULL);
-}
-
 void editorSave(){
     if (E.fileName == NULL){
         return;
@@ -369,7 +365,6 @@ void editorSave(){
 
     int length;
     char *buffer = editorRowsToString(&length);
-
     int fd = open(E.fileName, O_RDWR | O_CREAT, 0644);
     if (fd != -1){
         if(ftruncate(fd, length) != -1){
@@ -664,6 +659,13 @@ void editorRefreshScreen(void){
     abFree(&ab);
 }
 
+void editorSetStatusMessage(const char *fmt, ...){
+    va_list ap;
+    va_start (ap, fmt);
+    vsnprintf(E.statusMessage, sizeof(E.statusMessage), fmt, ap);
+    va_end(ap);
+    E.statusMessage_time = time(NULL);
+}
 
 /** INIT **/
 void initEditor(void){
