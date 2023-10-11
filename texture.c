@@ -354,24 +354,36 @@ void editorOpen(char* filename){
     fclose(filePath);
 }
 
+void editorSetStatusMessage(const char *fmt, ...){
+    va_list ap;
+    va_start (ap, fmt);
+    vsnprintf(E.statusMessage, sizeof(E.statusMessage), fmt, ap);
+    va_end(ap);
+    E.statusMessage_time = time(NULL);
+}
+
 void editorSave(){
     if (E.fileName == NULL){
         return;
     }
 
-    int len;
-    char *buf = editorRowsToString(&len);
+    int length;
+    char *buffer = editorRowsToString(&length);
+
     int fd = open(E.fileName, O_RDWR | O_CREAT, 0644);
     if (fd != -1){
-        if(ftruncate(fd, len)){
-            if(write(fd, buf, len)){
+        if(ftruncate(fd, length) != -1){
+            if(write(fd, buffer, length) == length){
                 close(fd);
-                free(buf);
+                free(buffer);
+                editorSetStatusMessage("%d bytes written to disk", length);
+                return;
             }
         }
         close(fd);
     }
-    free(buf);
+    free(buffer);
+    editorSetStatusMessage("Can't save! I/O error: %s", strerror(errno));
 }
 
 /* APPEND BUFFER */
@@ -652,13 +664,6 @@ void editorRefreshScreen(void){
     abFree(&ab);
 }
 
-void editorSetStatusMessage(const char *fmt, ...){
-    va_list ap;
-    va_start (ap, fmt);
-    vsnprintf(E.statusMessage, sizeof(E.statusMessage), fmt, ap);
-    va_end(ap);
-    E.statusMessage_time = time(NULL);
-}
 
 /** INIT **/
 void initEditor(void){
@@ -688,7 +693,7 @@ int main(int argc, char* argv[]){
         editorOpen(argv[1]);
     }
 
-    editorSetStatusMessage("HELP: Ctrl-q to quit");
+    editorSetStatusMessage("HELP: Ctrl-q to quit | Ctrl-s to save");
     
     while (true){
         editorRefreshScreen();
