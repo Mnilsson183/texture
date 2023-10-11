@@ -309,15 +309,15 @@ void editorInsertChar(int c){
 
 /* file i/o */
 
-char* editorRowsToString(int* buflen){
-    int totlen = 0;
-    int j = 0;
-    for(j = 0; j < E.screenRows; j++){
-        totlen += E.row[j].size + 1;
+char* editorRowsToString(int* bufferlength){
+    int totalLength = 0;
+    int j;
+    for(j = 0; j < E.displayLength; j++){
+        totalLength += E.row[j].size + 1;
     }
-    *buflen = totlen;
+    *bufferlength = totalLength;
 
-    char *buf = malloc(totlen);
+    char *buf = malloc(totalLength);
     char *p = buf;
     for(j = 0; j < E.displayLength; j++){
         memcpy(p, E.row[j].chars, E.row[j].size);
@@ -327,6 +327,7 @@ char* editorRowsToString(int* buflen){
     }
     return buf;
 }
+
 void editorOpen(char* filename){
     // open a file given a file path
     free(E.fileName);
@@ -358,11 +359,18 @@ void editorSave(){
         return;
     }
 
-    int len;char *buf = editorRowsToString(&len);
+    int len;
+    char *buf = editorRowsToString(&len);
     int fd = open(E.fileName, O_RDWR | O_CREAT, 0644);
-    ftruncate(fd, len);
-    write(fd, buf, len);
-    close(fd);
+    if (fd != -1){
+        if(ftruncate(fd, len)){
+            if(write(fd, buf, len)){
+                close(fd);
+                free(buf);
+            }
+        }
+        close(fd);
+    }
     free(buf);
 }
 
@@ -457,6 +465,9 @@ void editorProcessKeyPress(void){
             exit(0);
             break;
 
+        case CTRL_KEY('s'):
+            editorSave();
+            break;
         // home key sets the x position to the home 
         case HOME_KEY:
             E.cx = 0;
