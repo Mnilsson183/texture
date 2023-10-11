@@ -61,6 +61,7 @@ struct EditorConfig{
     int columnOffset;
     // default terminal settings
     struct termios orig_termios;
+    int dirty;
     // rows and columns of the terminal
     int screenRows, screenColumns;
     int displayLength;
@@ -288,6 +289,7 @@ void editorAppendRow(char* s, size_t length){
     editorUpdateRow(&E.row[at]);
 
     E.displayLength++;
+    E.dirty++;
 }
 
 void editorRowInsertChar(EditorRow *row, int at, int c){
@@ -299,6 +301,7 @@ void editorRowInsertChar(EditorRow *row, int at, int c){
         row->size++;
         row->chars[at] = c;
         editorUpdateRow(row);
+        E.dirty++;
 }
 
 /* Editor Functions */
@@ -356,6 +359,7 @@ void editorOpen(char* filename){
     }
     free(line);
     fclose(filePath);
+    E.dirty = 0;
 }
 
 void editorSave(){
@@ -371,6 +375,7 @@ void editorSave(){
             if(write(fd, buffer, length) == length){
                 close(fd);
                 free(buffer);
+                E.dirty = 0;
                 editorSetStatusMessage("%d bytes written to disk", length);
                 return;
             }
@@ -602,8 +607,9 @@ void editorDrawRows(struct AppendBuffer *ab){
 void editorDrawStatusBar(struct AppendBuffer *ab){
     abAppend(ab, "\x1b[7m", 4);
     char status[80], rstatus[80];
-    int length = snprintf(status, sizeof(status), "%.20s - %d lines", 
-        E.fileName ? E.fileName : "[No Name]", E.displayLength);
+    int length = snprintf(status, sizeof(status), "%.20s - %d lines %s", 
+        E.fileName ? E.fileName : "[No Name]", E.displayLength,
+        E.dirty ? "(modified)": "");
     int rlen = snprintf(rstatus, sizeof(rstatus), "%d%d", E.cy + 1, E.displayLength);
     if(length > E.screenColumns){
         length = E.screenColumns;
@@ -676,6 +682,7 @@ void initEditor(void){
     E.rowOffset = 0;
     E.columnOffset = 0;
     E.displayLength = 0;
+    E.dirty = 0;
     E.row = NULL;
     E.fileName = NULL;
     E.statusMessage[0] = '\0';
