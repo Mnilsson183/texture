@@ -25,6 +25,7 @@
 /* editor options */
 #define TEXTURE_VERSION "0.01"
 #define TEXTURE_TAB_STOP 8
+#define TEXTURE_QUIT_TIMES 3
 
 enum editorKey{
     BACKSPACE = 127,
@@ -304,6 +305,20 @@ void editorRowInsertChar(EditorRow *row, int at, int c){
         E.dirty++;
 }
 
+void editorRowDeleteChar(EditorRow *row, int at){
+    if (at < 0 || at >= row->size){
+        return;
+    }
+    memmove(&row->chars[at], &row->chars[at + 1], row->size - at);
+    row->size--;
+    editorUpdateRow(row);
+    E.dirty++;
+}
+
+void editorDeleteChar(){
+    
+}
+
 /* Editor Functions */
 void editorInsertChar(int c){
     if (E.cy == E.displayLength){
@@ -461,6 +476,8 @@ void editorMoveCursor(int key){
 }
 
 void editorProcessKeyPress(void){
+    static int quit_times = TEXTURE_QUIT_TIMES;
+
     int c = editorReadKey();
 
     switch (c){
@@ -470,6 +487,12 @@ void editorProcessKeyPress(void){
 
         // exit case
         case CTRL_KEY('q'):
+            if(E.dirty && quit_times > 0){
+                editorSetStatusMessage("WARNING!! file has unsaved changes. "
+                "Press Ctrl-Q %d more times to quit", quit_times);
+                quit_times--;
+                return;
+            }
             // write the 4 byte erase in display to the screen
             write(STDOUT_FILENO, "\x1b[2J", 4);
             // move the cursor to the 1,1 position in the terminal
@@ -534,6 +557,7 @@ void editorProcessKeyPress(void){
             editorInsertChar(c);
             break;
     }
+    quit_times = TEXTURE_QUIT_TIMES;
 }
 
 /** OUTPUT **/
