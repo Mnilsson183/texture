@@ -237,7 +237,7 @@ int getWindowSize(int* rows, int* columns){
 }
 /* row operations */
 
-int editorRowCxtoRx(EditorRow *row, int cx){
+int editorRowCxToRx(EditorRow *row, int cx){
     int rx = 0;
     int j;
     for(j = 0; j < cx; j++){
@@ -591,7 +591,7 @@ void editorProcessKeyPress(void){
 void editorScroll(){
     // moving the screen around the file
     if (E.cy < E.displayLength){
-        E.rx = editorRowCxtoRx(&E.row[E.cy], E.cx);
+        E.rx = editorRowCxToRx(&E.row[E.cy], E.cx);
     }
 
     if (E.cy < E.rowOffset){
@@ -657,18 +657,18 @@ void editorDrawRows(struct AppendBuffer *ab){
 
 void editorDrawStatusBar(struct AppendBuffer *ab){
     abAppend(ab, "\x1b[7m", 4);
-    char status[80], rstatus[80];
+    char status[80], rStatus[80];
     int length = snprintf(status, sizeof(status), "%.20s - %d lines %s", 
         E.fileName ? E.fileName : "[No Name]", E.displayLength,
         E.dirty ? "(modified)": "");
-    int rlen = snprintf(rstatus, sizeof(rstatus), "%d%d", E.cy + 1, E.displayLength);
+    int rlen = snprintf(rStatus, sizeof(rStatus), "%d%d", E.cy + 1, E.displayLength);
     if(length > E.screenColumns){
         length = E.screenColumns;
     }
     abAppend(ab , status, length);
     while(length < E.screenColumns){
         if (E.screenColumns - length == rlen){
-            abAppend(ab, rstatus, rlen);
+            abAppend(ab, rStatus, rlen);
             break;
         } else{
             abAppend(ab, " ", 1);
