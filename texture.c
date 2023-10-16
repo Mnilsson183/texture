@@ -43,6 +43,8 @@ enum editorKey{
 };
 /* prototypes */
 void editorSetStatusMessage(const char *fmt, ...);
+void editorRefreshScreen(void);
+char *editorPrompt(char *prompt);
 
 
 /** DATA **/
@@ -441,8 +443,8 @@ void editorOpen(char* filename){
 }
 
 void editorSave(){
-    if (E.fileName == NULL){
-        return;
+    if(E.fileName == NULL){
+        E.fileName = editorPrompt("Save as: %s");
     }
 
     int length;
@@ -495,6 +497,35 @@ void abFree(struct AppendBuffer *ab){
 }
 
 /** INPUT**/
+char *editorPrompt(char *prompt){
+    size_t bufferSize = 128;
+    char *buffer = malloc(bufferSize);
+
+    size_t bufferLength = 0;
+    buffer[0] = '\0';
+
+    while (true){
+        editorSetStatusMessage(prompt, buffer);
+        editorRefreshScreen();
+
+        int c = editorReadKey();
+        if(c == '\r'){
+            if(bufferLength != 0){
+                editorSetStatusMessage("");
+                return buffer;
+            }
+        } else if(!iscntrl(c) && c < 128){
+            if(bufferLength == bufferSize - 1){
+                bufferSize *= 2;
+                buffer = realloc(buffer, bufferSize);
+            }
+            buffer[bufferLength++] = c;
+            buffer[bufferLength] = '\0';
+        }
+    }
+}
+
+
 void editorMoveCursor(int key){
     EditorRow* row = (E.cy >= E.displayLength) ? NULL: &E.row[E.cy];
     
