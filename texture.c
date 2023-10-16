@@ -24,6 +24,8 @@
 #define true 1
 #define false 0
 
+#define APPEND_INIT {NULL, 0}
+
 /* editor options */
 #define TEXTURE_VERSION "0.01"
 #define TEXTURE_TAB_STOP 8
@@ -54,6 +56,12 @@ typedef struct EditorRow{
     char* chars;
     char* render;
 } EditorRow;
+
+struct AppendBuffer{
+    // buffer to minimize write to terminal functions
+    char *b;
+    int len;
+};
 
 
 // global var that is the default settings of terminal
@@ -467,13 +475,6 @@ void editorSave(){
 }
 
 /* APPEND BUFFER */
-struct AppendBuffer{
-    // buffer to minimize write to terminal functions
-    char *b;
-    int len;
-};
-
-#define APPEND_INIT {NULL, 0}
 
 void abAppend(struct AppendBuffer *ab, const char *s, int len){
     // append  to the appendBuffer 
@@ -524,7 +525,6 @@ char *editorPrompt(char *prompt){
         }
     }
 }
-
 
 void editorMoveCursor(int key){
     EditorRow* row = (E.cy >= E.displayLength) ? NULL: &E.row[E.cy];
@@ -677,7 +677,6 @@ void editorScroll(){
         E.columnOffset = E.rx - E.screenColumns + 1;
     }
 }
-
 
 void editorDrawRows(struct AppendBuffer *ab){
     // draw stuff
