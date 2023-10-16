@@ -7,7 +7,6 @@
 
 #include <string.h>
 #include <sys/ioctl.h>
-#include <stdbool.h>
 #include <errno.h>
 #include <ctype.h>
 #include <stdio.h>
@@ -21,6 +20,9 @@
 
 /** DEFINES**/
 #define CTRL_KEY(key) ((key) & 0x1f)
+
+#define true 1
+#define false 0
 
 /* editor options */
 #define TEXTURE_VERSION "0.01"
