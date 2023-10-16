@@ -322,6 +322,15 @@ void editorRowInsertChar(EditorRow *row, int at, int c){
         E.dirty++;
 }
 
+void editorRowAppendString(EditorRow *row, char *s, size_t length){
+    row->chars = realloc(row->chars, row->size + length + 1);
+    memcpy(&row->chars[row->size], s, length);
+    row->size += length;
+    row->chars[row->size] = '\0';
+    editorUpdateRow(row);
+    E.dirty++;
+}
+
 void editorRowDeleteChar(EditorRow *row, int at){
     if (at < 0 || at >= row->size){
         return;
@@ -346,11 +355,20 @@ void editorDeleteChar(){
     if(E.cy == E.displayLength){
         return;
     }
+    if(E.cx == 0 && E.cy == 0){
+        return;
+    }
+
     EditorRow *row = &E.row[E.cy];
 
     if(E.cx > 0){
         editorRowDeleteChar(row, E.cx - 1);
         E.cx--;
+    } else{
+        E.cx = E.row[E.cy - 1].size;
+        editorRowAppendString(&E.row[E.cy - 1], row->chars, row->size);
+        editorDeleteRow(E.cy);
+        E.cy--;
     }
 }
 
