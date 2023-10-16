@@ -293,6 +293,21 @@ void editorAppendRow(char* s, size_t length){
     E.dirty++;
 }
 
+void editorFreeRow(EditorRow *row){
+    free(row->render);
+    free(row->chars);
+}
+
+void editorDeleteRow(int at){
+    if(at < 0 || at >= E.displayLength){
+        return;
+    }
+    editorFreeRow(&E.row[at]);
+    memmove(&E.row[at], &E.row[at + 1], sizeof(EditorRow) * (E.displayLength - at - 1));
+    E.displayLength--;
+    E.dirty++;
+}
+
 void editorRowInsertChar(EditorRow *row, int at, int c){
     if (at < 0 || at > row->size){ 
         at = row->size;
