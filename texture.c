@@ -315,10 +315,6 @@ void editorRowDeleteChar(EditorRow *row, int at){
     E.dirty++;
 }
 
-void editorDeleteChar(){
-    
-}
-
 /* Editor Functions */
 void editorInsertChar(int c){
     if (E.cy == E.displayLength){
@@ -326,6 +322,19 @@ void editorInsertChar(int c){
     }
     editorRowInsertChar(&E.row[E.cy], E.cx, c);
     E.cx++;
+}
+
+
+void editorDeleteChar(){
+    if(E.cy == E.displayLength){
+        return;
+    }
+    EditorRow *row = &E.row[E.cy];
+
+    if(E.cx > 0){
+        editorRowDeleteChar(row, E.cx - 1);
+        E.cx--;
+    }
 }
 
 
@@ -517,7 +526,10 @@ void editorProcessKeyPress(void){
         case BACKSPACE:
         case CTRL_KEY('h'):
         case DEL_KEY:
-            // do
+            if(c == DEL_KEY){
+                editorMoveCursor(ARROW_RIGHT);
+            }
+            editorDeleteChar();
             break;
 
 
