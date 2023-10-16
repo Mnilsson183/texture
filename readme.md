@@ -1,6 +1,6 @@
 # Text Editor in C
 
-This is a basic C text editor that allows you to edit text in your terminal. It is a minimalistic text editor designed to run in a terminal with raw mode enabled.
+This is a basic C text editor that allows you to edit text in your terminal. It is a minimalistic text editor designed to run in a terminal.
 
 ## Table of Contents
 
