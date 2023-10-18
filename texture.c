@@ -452,7 +452,11 @@ void editorOpen(char* filename){
 
 void editorSave(){
     if(E.fileName == NULL){
-        E.fileName = editorPrompt("Save as: %s");
+        E.fileName = editorPrompt("Save as (Esc to cancel): %s");
+        if(E.fileName == NULL){
+            editorSetStatusMessage("Save aborted");
+            return;
+        }
     }
 
     int length;
@@ -510,7 +514,11 @@ char *editorPrompt(char *prompt){
         editorRefreshScreen();
 
         int c = editorReadKey();
-        if(c == '\r'){
+        if(c == '\x1b'){
+            editorSetStatusMessage("");
+            free(buffer);
+            return NULL;
+        } else if(c == '\r'){
             if(bufferLength != 0){
                 editorSetStatusMessage("");
                 return buffer;
