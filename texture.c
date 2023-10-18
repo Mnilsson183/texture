@@ -514,7 +514,11 @@ char *editorPrompt(char *prompt){
         editorRefreshScreen();
 
         int c = editorReadKey();
-        if(c == '\x1b'){
+        if(c == DEL_KEY || c == CTRL_KEY('h') || c == BACKSPACE){
+            if(bufferLength != 0){
+                buffer[--bufferLength] = '\0';
+            }
+        }else if(c == '\x1b'){
             editorSetStatusMessage("");
             free(buffer);
             return NULL;
