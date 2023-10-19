@@ -43,6 +43,11 @@ enum editorKey{
     PAGE_UP,
     PAGE_DOWN,
 };
+
+enum editorHighlight{
+    HL_NORMAL = 0,
+    HL_NUMBER
+};
 /* prototypes */
 void editorSetStatusMessage(const char *fmt, ...);
 void editorRefreshScreen(void);
@@ -55,6 +60,7 @@ typedef struct EditorRow{
     int renderSize;
     char* chars;
     char* render;
+    unsigned char *highLight;
 } EditorRow;
 
 struct AppendBuffer{
@@ -247,6 +253,30 @@ int getWindowSize(int* rows, int* columns){
         return 0;
     }
 }
+/* Syntax highlighting */
+void editorUpdateSyntax(EditorRow *row){
+    row->highLight = realloc(row->highLight, row->size);
+    memset(row->highLight, HL_NORMAL, row->size);
+
+    int i;
+    for(i = 0; i < row->size; i++){
+        if(isdigit(row->render[i])){
+            row->highLight[i] = HL_NUMBER;
+        }
+    }
+}
+
+int editorSyntaxToColor(int highLight){
+    switch (highLight)
+    {
+    case HL_NUMBER:
+        return 31;
+    
+    default:
+        return 37;
+    }
+}
+
 /* row operations */
 
 int editorRowCxToRx(EditorRow *row, int cx){
@@ -300,6 +330,8 @@ void editorUpdateRow(EditorRow *row){
     }
     row->render[tempLength] = '\0';
     row->renderSize = tempLength;
+
+    editorUpdateSyntax(row);
 }
 
 void editorInsertRow(int at, char* s, size_t length){
@@ -318,6 +350,7 @@ void editorInsertRow(int at, char* s, size_t length){
 
     E.row[at].renderSize = 0;
     E.row[at].render = NULL;
+    E.row[at].highLight = NULL;
     editorUpdateRow(&E.row[at]);
 
     E.displayLength++;
@@ -327,6 +360,7 @@ void editorInsertRow(int at, char* s, size_t length){
 void editorFreeRow(EditorRow *row){
     free(row->render);
     free(row->chars);
+    free(row->highLight);
 }
 
 void editorDeleteRow(int at){
@@ -495,16 +529,40 @@ void editorSave(){
 
 /* find */
 void editorFindCallback(char *query, int key){
+    static int last_match = -1;
+    static int direction = 1;
+
     if(key == '\r' || key == '\x1b'){
+        last_match = -1;
+        direction = 1;
         return;
+    } else if(key == ARROW_RIGHT || key == ARROW_DOWN){
+        direction = 1;
+    } else if(key == ARROW_LEFT || key == ARROW_UP){
+        direction = -1;
+    } else{
+        last_match = -1;
+        direction = 1;
     }
 
+    if(last_match == -1){
+        direction = 1;
+    }
+    int current = last_match;
     int i;
     for(i = 0; i < E.displayLength; i++){
-        EditorRow *row = &E.row[i];
+        current += direction;
+        if(current == -1){
+            current = E.displayLength - 1;
+        } else if(current == E.displayLength){
+            current = 0;
+        }
+
+        EditorRow *row = &E.row[current];
         char *match = strstr(row->render, query);
         if(match){
-            E.cy = i;
+            last_match = current;
+            E.cy = current;
             E.cx = editorRowRxToCx(row, match - row->render);
             E.rowOffset = E.displayLength;
             break;
@@ -519,7 +577,7 @@ void editorFind(){
     int saved_columnOffset = E.columnOffset;
     int saved_rowOffset = E.rowOffset;
 
-    char* query = editorPrompt("Search: %s (ESC to cancel): ", editorFindCallback);
+    char* query = editorPrompt("Search: %s (ESC/Arrows/Enter): ", editorFindCallback);
     if(query){
         free(query);
     } else {
@@ -795,7 +853,17 @@ void editorDrawRows(struct AppendBuffer *ab){
                 if (length > E.screenColumns){
                     length = E.screenColumns;
                 }
-                abAppend(ab, &E.row[fileRow].render[E.columnOffset], length);
+                char *c = &E.row[fileRow].render[E.columnOffset];
+                int j;
+                for(j = 0; j < length; j++){
+                    if(isdigit(c[j])){
+                        abAppend(ab, "\x1b[31m", 5);
+                        abAppend(ab, &c[j], 1);
+                        abAppend(ab, "\x1b[39m", 5);
+                    } else{
+                        abAppend(ab, &c[j], 1);
+                    }
+                }
             }
             // erase from cursor to end of line
             abAppend(ab, "\x1b[K", 3);
