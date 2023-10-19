@@ -854,16 +854,21 @@ void editorDrawRows(struct AppendBuffer *ab){
                     length = E.screenColumns;
                 }
                 char *c = &E.row[fileRow].render[E.columnOffset];
+                unsigned char *highLight = &E.row[fileRow].highLight[E.columnOffset];
                 int j;
                 for(j = 0; j < length; j++){
-                    if(isdigit(c[j])){
-                        abAppend(ab, "\x1b[31m", 5);
-                        abAppend(ab, &c[j], 1);
+                    if(highLight[j] == HL_NORMAL){
                         abAppend(ab, "\x1b[39m", 5);
+                        abAppend(ab, &c[j], 1);
                     } else{
+                        int color = editorSyntaxToColor(highLight[j]);
+                        char buffer[16];
+                        int clen = snprintf(buffer, sizeof(buffer), "\x1b[%dm", color);
+                        abAppend(ab, buffer, clen);
                         abAppend(ab, &c[j], 1);
                     }
                 }
+                abAppend(ab, "\x1b[39m", 5);
             }
             // erase from cursor to end of line
             abAppend(ab, "\x1b[K", 3);
