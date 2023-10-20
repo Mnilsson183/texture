@@ -46,7 +46,8 @@ enum editorKey{
 
 enum editorHighlight{
     HL_NORMAL = 0,
-    HL_NUMBER
+    HL_NUMBER,
+    HL_MATCH
 };
 /* prototypes */
 void editorSetStatusMessage(const char *fmt, ...);
@@ -256,10 +257,10 @@ int getWindowSize(int* rows, int* columns){
 /* Syntax highlighting */
 void editorUpdateSyntax(EditorRow *row){
     row->highLight = realloc(row->highLight, row->size);
-    memset(row->highLight, HL_NORMAL, row->size);
+    memset(row->highLight, HL_NORMAL, row->renderSize);
 
     int i;
-    for(i = 0; i < row->size; i++){
+    for(i = 0; i < row->renderSize; i++){
         if(isdigit(row->render[i])){
             row->highLight[i] = HL_NUMBER;
         }
@@ -272,6 +273,9 @@ int editorSyntaxToColor(int highLight){
     case HL_NUMBER:
         return 31;
     
+    case HL_MATCH:
+        return 34;
+
     default:
         return 37;
     }
@@ -532,6 +536,15 @@ void editorFindCallback(char *query, int key){
     static int last_match = -1;
     static int direction = 1;
 
+    static int saved_highLight_line;
+    static char *saved_highLight = NULL;
+
+    if(saved_highLight){
+        memcpy(E.row[saved_highLight_line].highLight, saved_highLight, E.row[saved_highLight_line].renderSize);
+        free(saved_highLight);
+        saved_highLight = NULL;
+    }
+
     if(key == '\r' || key == '\x1b'){
         last_match = -1;
         direction = 1;
@@ -565,6 +578,11 @@ void editorFindCallback(char *query, int key){
             E.cy = current;
             E.cx = editorRowRxToCx(row, match - row->render);
             E.rowOffset = E.displayLength;
+
+            saved_highLight_line = current;
+            saved_highLight = malloc(row->size);
+            memcpy(saved_highLight, row->highLight, row->renderSize);
+            memset(&row->highLight[match - row->render], HL_MATCH, strlen(query));
             break;
         }
     }
@@ -855,16 +873,23 @@ void editorDrawRows(struct AppendBuffer *ab){
                 }
                 char *c = &E.row[fileRow].render[E.columnOffset];
                 unsigned char *highLight = &E.row[fileRow].highLight[E.columnOffset];
+                int current_color = -1;
                 int j;
                 for(j = 0; j < length; j++){
                     if(highLight[j] == HL_NORMAL){
-                        abAppend(ab, "\x1b[39m", 5);
+                        if(current_color != -1){
+                            abAppend(ab, "\x1b[39m", 5);
+                            current_color = -1;
+                        }
                         abAppend(ab, &c[j], 1);
                     } else{
                         int color = editorSyntaxToColor(highLight[j]);
-                        char buffer[16];
+                        if(color != current_color){
+                            current_color = color;
+                            char buffer[16];
                         int clen = snprintf(buffer, sizeof(buffer), "\x1b[%dm", color);
                         abAppend(ab, buffer, clen);
+                        }
                         abAppend(ab, &c[j], 1);
                     }
                 }
