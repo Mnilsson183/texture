@@ -256,15 +256,22 @@ int getWindowSize(int* rows, int* columns){
     }
 }
 /* Syntax highlighting */
+int isSeparator(int c){
+    return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[];", c);
+}
+
 void editorUpdateSyntax(EditorRow *row){
     row->highLight = realloc(row->highLight, row->size);
     memset(row->highLight, HL_NORMAL, row->renderSize);
 
-    int i;
-    for(i = 0; i < row->renderSize; i++){
-        if(isdigit(row->render[i])){
+    int i = 0;
+    while (i < row->renderSize){
+        char c = row->render[i];
+
+        if(isdigit(c)){
             row->highLight[i] = HL_NUMBER;
         }
+        i++;
     }
 }
 
