@@ -89,6 +89,7 @@ struct EditorConfig{
     char statusMessage[80];
     time_t statusMessage_time;
 };
+
 struct EditorConfig E;
 
 
