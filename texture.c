@@ -264,13 +264,21 @@ void editorUpdateSyntax(EditorRow *row){
     row->highLight = realloc(row->highLight, row->size);
     memset(row->highLight, HL_NORMAL, row->renderSize);
 
+    int prevSeparator = 1;
+    
+
     int i = 0;
     while (i < row->renderSize){
         char c = row->render[i];
+        unsigned char prevHighlight = (i > 0) ? row->highLight[i - 1] : HL_NORMAL;
 
-        if(isdigit(c)){
+        if(isdigit(c) && (prevSeparator || prevHighlight == HL_NUMBER)){
             row->highLight[i] = HL_NUMBER;
+            i++;
+            prevSeparator = 0;
+            continue;
         }
+        prevSeparator = isSeparator(c);
         i++;
     }
 }
