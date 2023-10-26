@@ -30,6 +30,7 @@
 #define TEXTURE_VERSION "0.01"
 #define TEXTURE_TAB_STOP 8
 #define TEXTURE_QUIT_TIMES 3
+#define HL_HIGHLIGHT_NUMBERS (1<<0)
 
 enum editorKey{
     BACKSPACE = 127,
@@ -70,6 +71,12 @@ struct AppendBuffer{
     int len;
 };
 
+struct EditorSyntax{
+    char *filetype;
+    char **fileMatch;
+    int flags;
+};
+
 
 // global var that is the default settings of terminal
 struct EditorConfig{
@@ -87,12 +94,24 @@ struct EditorConfig{
     int displayLength;
     EditorRow* row;
     char* fileName;
+    struct EditorSyntax *syntax;
     char statusMessage[80];
     time_t statusMessage_time;
 };
 
 struct EditorConfig E;
 
+/* filetypes */
+char *C_HL_extensions[] = {".c", ".h", ".cpp", NULL};
+struct EditorSyntax HighLightDataBase[] = {
+    {
+    "c",
+    C_HL_extensions,
+    HL_HIGHLIGHT_NUMBERS
+    },
+};
+
+#define HighLightDataBase_ENTRIES (sizeof(HighLightDataBase) / sizeof(HighLightDataBase[0]))
 
 /** TERMINAL**/
 void terminate(const char *s){
@@ -261,8 +280,12 @@ int isSeparator(int c){
 }
 
 void editorUpdateSyntax(EditorRow *row){
-    row->highLight = realloc(row->highLight, row->size);
+    row->highLight = realloc(row->highLight, row->renderSize);
     memset(row->highLight, HL_NORMAL, row->renderSize);
+
+    if(E.syntax == NULL){
+        return;
+    }
 
     int prevSeparator = 1;
     
@@ -272,11 +295,14 @@ void editorUpdateSyntax(EditorRow *row){
         char c = row->render[i];
         unsigned char prevHighlight = (i > 0) ? row->highLight[i - 1] : HL_NORMAL;
 
-        if(isdigit(c) && (prevSeparator || prevHighlight == HL_NUMBER)){
-            row->highLight[i] = HL_NUMBER;
-            i++;
-            prevSeparator = 0;
-            continue;
+        if(E.syntax->flags & HL_HIGHLIGHT_NUMBERS){
+            if((isdigit(c) && (prevSeparator || prevHighlight == HL_NUMBER)) || 
+            (c =='.' && prevHighlight == HL_NUMBER)){
+                row->highLight[i] = HL_NUMBER;
+                i++;
+                prevSeparator = 0;
+                continue;
+            }
         }
         prevSeparator = isSeparator(c);
         i++;
@@ -924,7 +950,8 @@ void editorDrawStatusBar(struct AppendBuffer *ab){
     int length = snprintf(status, sizeof(status), "%.20s - %d lines %s", 
         E.fileName ? E.fileName : "[No Name]", E.displayLength,
         E.dirty ? "(modified)": "");
-    int rlen = snprintf(rStatus, sizeof(rStatus), "%d%d", E.cy + 1, E.displayLength);
+    int rlen = snprintf(rStatus, sizeof(rStatus), "%s | %d%d",
+        E.syntax ? E.syntax->filetype : "No Filetype", E.cy + 1, E.displayLength);
     if(length > E.screenColumns){
         length = E.screenColumns;
     }
@@ -1001,6 +1028,7 @@ void initEditor(void){
     E.fileName = NULL;
     E.statusMessage[0] = '\0';
     E.statusMessage_time = 0;
+    E.syntax = NULL;
 
     if (getWindowSize(&E.screenRows, &E.screenColumns) == -1){
         terminate("getWindowSize");
