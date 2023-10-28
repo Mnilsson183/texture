@@ -323,6 +323,29 @@ int editorSyntaxToColor(int highLight){
     }
 }
 
+void editorSelectSyntaxHighlight(void){
+    E.syntax = NULL;
+    if(E.fileName == NULL){
+        return;
+    }
+
+    char *extension = strrchr(E.fileName, '.');
+
+    for(unsigned int j = 0; j < HighLightDataBase_ENTRIES; j++){
+        struct EditorSyntax *s = &HighLightDataBase[j];
+        unsigned int i = 0;
+        while(s->fileMatch[i]){
+            int is_extension = (s->fileMatch[i][0] == '0');
+            if((is_extension && extension && !strcmp(extension, s->fileMatch[i])) ||
+                (!is_extension && strstr(E.fileName, s->fileMatch[i]))){
+                    E.syntax = s;
+                    return;
+                }
+            i++;
+        }
+    }
+}
+
 /* row operations */
 
 int editorRowCxToRx(EditorRow *row, int cx){
