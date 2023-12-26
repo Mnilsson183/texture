@@ -49,6 +49,7 @@ enum editorKey{
 
 enum editorHighlight{
     HL_NORMAL = 0,
+    HL_COMMENT,
     HL_STRING,
     HL_NUMBER,
     HL_MATCH
@@ -77,6 +78,7 @@ struct AppendBuffer{
 struct EditorSyntax{
     char *filetype;
     char **fileMatch;
+    char *singleLine_comment_start;
     int flags;
 };
 
@@ -111,6 +113,7 @@ struct EditorSyntax HighLightDataBase[] = {
     {
     "c",
     C_HL_extensions,
+    "//",
     HL_HIGHLIGHT_NUMBERS | HL_HIGHLIGHT_STRINGS
     },
 };
@@ -291,6 +294,9 @@ void editorUpdateSyntax(EditorRow *row){
         return;
     }
 
+    char *singleLineCommentStart = E.syntax->singleLine_comment_start;
+    int singleLineCommentStartLength = singleLineCommentStart ? strlen(singleLineCommentStart) : 0;
+
     int prevSeparator = 1;
     int in_string = 0;
     
@@ -300,9 +306,18 @@ void editorUpdateSyntax(EditorRow *row){
         char c = row->render[i];
         unsigned char prevHighlight = (i > 0) ? row->highLight[i - 1] : HL_NORMAL;
 
+        if(singleLineCommentStartLength && !in_string){
+            if(!strc)
+        }
+
         if(E.syntax->flags & HL_HIGHLIGHT_STRINGS){
             if(in_string){
                 row->highLight[i] = HL_STRING;
+                if(c == '\\' && i + 1 < row->renderSize){
+                    row->highLight[i + 1] = HL_STRING;
+                    i += 2;
+                    continue;
+                }
                 if(c == in_string){
                     in_string = 0;
                 }
@@ -336,6 +351,9 @@ void editorUpdateSyntax(EditorRow *row){
 int editorSyntaxToColor(int highLight){
     switch (highLight)
     {
+        case HL_COMMENT:
+            return 36;
+
         case HL_NUMBER:
             return 31;
         
@@ -366,6 +384,12 @@ void editorSelectSyntaxHighlight(void){
             if((is_extension && extension && !strcmp(extension, s->fileMatch[i])) ||
                 (!is_extension && strstr(E.fileName, s->fileMatch[i]))){
                     E.syntax = s;
+
+                    int fileRow;
+                    for(fileRow = 0; fileRow < E.displayLength; fileRow++){
+                        editorUpdateSyntax(&E.row[fileRow]);
+                    }
+
                     return;
                 }
             i++;
