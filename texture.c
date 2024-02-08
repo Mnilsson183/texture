@@ -52,6 +52,7 @@ enum editorKey{
 enum editorHighlight{
     HL_NORMAL = 0,
     HL_COMMENT,
+    HL_MULTIPLE_LINE_COMMENT,
     HL_KEYWORD1,
     HL_KEYWORD2,
     HL_STRING,
@@ -84,6 +85,8 @@ struct EditorSyntax{
     char **fileMatch;
     char **keywords;
     char *singleline_comment_start;
+    char *multiline_comment_start;
+    char *multiline_comment_end;
     int flags;
 };
 
@@ -125,7 +128,7 @@ struct EditorSyntax HighLightDataBase[] = {
     "c",
     C_HL_extensions,
     C_HL_keywords,
-    "//",
+    "//", "/*", "*/",
     HL_HIGHLIGHT_NUMBERS | HL_HIGHLIGHT_STRINGS
     },
 };
@@ -309,12 +312,17 @@ void editorUpdateSyntax(EditorRow *row){
     char **keywords = E.syntax->keywords;
 
     char *singleLightCommentStart = E.syntax->singleline_comment_start;
+    char *multilineCommentStart = E.syntax->multiline_comment_start;
+    char *multilineCommentEnd = E.syntax->multiline_comment_end;
+
     int singleLightCommentStartLength = singleLightCommentStart ? strlen(singleLightCommentStart): 0;
+    int multilineCommentStartLength = multilineCommentStart ? strlen(multilineCommentStart) : 0;
+    int multilineCommentEndLength = multilineCommentEnd ? strlen(multilineCommentEnd) : 0;
 
 
     int prevSeparator = 1;
     int in_string = 0;
-    
+    int in_comment = 0;
 
     int i = 0;
     while (i < row->renderSize){
@@ -328,6 +336,28 @@ void editorUpdateSyntax(EditorRow *row){
                 break;
             }
         }
+
+        if(multilineCommentStartLength && multilineCommentEndLength && !in_string){
+            if(in_comment){
+                row->highLight[i] = HL_MULTIPLE_LINE_COMMENT;
+                if(!strncmp(&row->render[i], multilineCommentStart, multilineCommentStartLength)){
+                    memset(&row->highLight[i], HL_MULTIPLE_LINE_COMMENT, multilineCommentStartLength);
+                    i += 2;
+                    in_comment = 0;
+                    prevSeparator = 1;
+                    continue;
+                } else{
+                    i++;
+                    continue;
+                }
+            } else if(!strncmp(&row->render[i], multilineCommentStart, multilineCommentStartLength)){
+                    memset(&row->highLight[i], HL_MULTIPLE_LINE_COMMENT, multilineCommentStartLength);
+                    i += multilineCommentStartLength;
+                    in_comment = 1;
+                    continue;
+            }
+        }
+
         if(E.syntax->flags & HL_HIGHLIGHT_STRINGS){
             if(in_string){
                 if(c == '\\' && i + 1 < row->renderSize){
@@ -393,7 +423,8 @@ void editorUpdateSyntax(EditorRow *row){
 int editorSyntaxToColor(int highLight){
     switch (highLight)
     {
-        case HL_COMMENT: return 36;
+        case HL_COMMENT:
+        case HL_MULTIPLE_LINE_COMMENT: return 36;
         case HL_KEYWORD1: return 33;
         case HL_KEYWORD2: return 32;
         case HL_NUMBER: return 31;
