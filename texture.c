@@ -321,6 +321,7 @@ void editorUpdateSyntax(EditorRow *row){
         char c = row->render[i];
         unsigned char prevHighlight = (i > 0) ? row->highLight[i - 1] : HL_NORMAL;
 
+
         if(singleLightCommentStartLength && !in_string){
             if(!strncmp(&row->render[i], singleLightCommentStart, singleLightCommentStartLength)){
                 memset(&row->highLight[i], HL_COMMENT, row->renderSize - i);
@@ -335,6 +336,11 @@ void editorUpdateSyntax(EditorRow *row){
                     continue;
                 }
                 row->highLight[i] = HL_STRING;
+                if(c == '\\' && i + 1 < row->renderSize){
+                    row->highLight[i + 1] = HL_STRING;
+                    i += 2;
+                    continue;
+                }
                 if(c == in_string){
                     in_string = 0;
                 }
@@ -413,6 +419,12 @@ void editorSelectSyntaxHighlight(void){
             if((is_extension && extension && !strcmp(extension, s->fileMatch[i])) ||
                 (!is_extension && strstr(E.fileName, s->fileMatch[i]))){
                     E.syntax = s;
+
+                    int fileRow;
+                    for(fileRow = 0; fileRow < E.displayLength; fileRow++){
+                        editorUpdateSyntax(&E.row[fileRow]);
+                    }
+
                     return;
                 }
             i++;
