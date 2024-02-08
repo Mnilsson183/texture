@@ -49,6 +49,9 @@ enum editorKey{
 
 enum editorHighlight{
     HL_NORMAL = 0,
+    HL_COMMENT,
+    HL_KEYWORD1,
+    HL_KEYWORD2,
     HL_STRING,
     HL_NUMBER,
     HL_MATCH
@@ -77,6 +80,8 @@ struct AppendBuffer{
 struct EditorSyntax{
     char *filetype;
     char **fileMatch;
+    char **keywords;
+    char *singleline_comment_start;
     int flags;
 };
 
@@ -106,11 +111,19 @@ struct EditorConfig E;
 
 /* filetypes */
 char *C_HL_extensions[] = {".c", ".h", ".cpp", NULL};
+char *C_HL_keywords[] = {
+    "switch", "if", "while", "for", "break", "continue", "return", "else",
+    "struct", "union", "typedef", "static", "enum", "class", "case",
+    "int|", "long|", "double|", "float|", "char|", "unsigned|", "signed|",
+    "void|", NULL
+};
 
 struct EditorSyntax HighLightDataBase[] = {
     {
     "c",
     C_HL_extensions,
+    C_HL_keywords,
+    "//",
     HL_HIGHLIGHT_NUMBERS | HL_HIGHLIGHT_STRINGS
     },
 };
@@ -291,6 +304,12 @@ void editorUpdateSyntax(EditorRow *row){
         return;
     }
 
+    char **keywords = E.syntax->keywords;
+
+    char *singleLightCommentStart = E.syntax->singleline_comment_start;
+    int singleLightCommentStartLength = singleLightCommentStart ? strlen(singleLightCommentStart): 0;
+
+
     int prevSeparator = 1;
     int in_string = 0;
     
@@ -300,8 +319,19 @@ void editorUpdateSyntax(EditorRow *row){
         char c = row->render[i];
         unsigned char prevHighlight = (i > 0) ? row->highLight[i - 1] : HL_NORMAL;
 
+        if(singleLightCommentStartLength && !in_string){
+            if(!strncmp(&row->render[i], singleLightCommentStart, singleLightCommentStartLength)){
+                memset(&row->highLight[i], HL_COMMENT, row->renderSize - i);
+                break;
+            }
+        }
         if(E.syntax->flags & HL_HIGHLIGHT_STRINGS){
             if(in_string){
+                if(c == '\\' && i + 1 < row->renderSize){
+                    row->highLight[i + 1] = HL_STRING;
+                    i += 2;
+                    continue;
+                }
                 row->highLight[i] = HL_STRING;
                 if(c == in_string){
                     in_string = 0;
@@ -328,6 +358,25 @@ void editorUpdateSyntax(EditorRow *row){
                 continue;
             }
         }
+        if(prevSeparator){
+            int j;
+            for(j = 0; keywords[j]; j++){
+                int keywordLength = strlen(keywords[j]);
+                int keyword2 = keywords[j][keywordLength - 1] == '|';
+                if(keyword2) keywordLength--;
+
+                if(!strncmp(&row->render[i], keywords[j], keywordLength) &&
+                    isSeparator(row->render[i + keywordLength])){
+                        memset(&row->highLight[i], keyword2 ? HL_KEYWORD2: HL_KEYWORD1, keywordLength);
+                        i+=keywordLength;
+                        break;
+                }
+            }
+            if(keywords[j] != NULL){
+                prevSeparator = isSeparator(c);
+                i++;
+            }
+        }
         prevSeparator = isSeparator(c);
         i++;
     }
@@ -336,17 +385,13 @@ void editorUpdateSyntax(EditorRow *row){
 int editorSyntaxToColor(int highLight){
     switch (highLight)
     {
-        case HL_NUMBER:
-            return 31;
-        
-        case HL_STRING:
-            return 35;
-            
-        case HL_MATCH:
-            return 34;
-
-        default:
-            return 37;
+        case HL_COMMENT: return 36;
+        case HL_KEYWORD1: return 33;
+        case HL_KEYWORD2: return 32;
+        case HL_NUMBER: return 31;
+        case HL_STRING: return 35;
+        case HL_MATCH: return 34;
+        default: return 37;
     }
 }
 
