@@ -2,6 +2,9 @@
 
 This is a basic C text editor that allows you to edit text in your terminal. It is a minimalistic text editor designed to run in a terminal.
 
+Built from the tutorial by Salvatore Sanfilippo aka antirez
+Tutorial is at https://viewsourcecode.org/snaptoken/kilo/index.html
+
 ## Table of Contents
 
 - [Overview](#overview)
