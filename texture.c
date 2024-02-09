@@ -1,6 +1,5 @@
 // basic c text editor
 
-// step 177
 
 /** INCLUDES **/
 #define _DEFAULT_SOURCE
@@ -67,11 +66,13 @@ char *editorPrompt(char *prompt, void (*callback)(char *, int));
 
 /** DATA **/
 typedef struct EditorRow{
+    int idx;
     int size;
     int renderSize;
     char* chars;
     char* render;
     unsigned char *highLight;
+    int highLight_open_comment;
 } EditorRow;
 
 struct AppendBuffer{
@@ -322,7 +323,7 @@ void editorUpdateSyntax(EditorRow *row){
 
     int prevSeparator = 1;
     int in_string = 0;
-    int in_comment = 0;
+    int in_comment = (row->idx > 0 && E.row[row->idx - 1].highLight_open_comment);
 
     int i = 0;
     while (i < row->renderSize){
@@ -330,7 +331,7 @@ void editorUpdateSyntax(EditorRow *row){
         unsigned char prevHighlight = (i > 0) ? row->highLight[i - 1] : HL_NORMAL;
 
 
-        if(singleLightCommentStartLength && !in_string){
+        if(singleLightCommentStartLength && !in_string && !in_comment){
             if(!strncmp(&row->render[i], singleLightCommentStart, singleLightCommentStartLength)){
                 memset(&row->highLight[i], HL_COMMENT, row->renderSize - i);
                 break;
@@ -417,6 +418,12 @@ void editorUpdateSyntax(EditorRow *row){
         }
         prevSeparator = isSeparator(c);
         i++;
+    }
+
+    int changed = (row->highLight_open_comment != in_comment);
+    row->highLight_open_comment = in_comment;
+    if(changed && row->idx + 1 < E.displayLength){
+        editorUpdateSyntax(&E.row[row->idx + 1]);
     }
 }
 
@@ -527,6 +534,9 @@ void editorInsertRow(int at, char* s, size_t length){
 
     E.row = realloc(E.row, sizeof(EditorRow) * (E.displayLength + 1));
     memmove(&E.row[at + 1], &E.row[at], sizeof(EditorRow) * (E.displayLength - at));
+    for(int j = at + 1; j <= E.displayLength; j++) E.row[j].idx++;
+
+    E.row[at].idx = at;
 
     // add a row to display
     E.row[at].size = length;
@@ -537,6 +547,7 @@ void editorInsertRow(int at, char* s, size_t length){
     E.row[at].renderSize = 0;
     E.row[at].render = NULL;
     E.row[at].highLight = NULL;
+    E.row[at].highLight_open_comment = 0;
     editorUpdateRow(&E.row[at]);
 
     E.displayLength++;
@@ -555,6 +566,7 @@ void editorDeleteRow(int at){
     }
     editorFreeRow(&E.row[at]);
     memmove(&E.row[at], &E.row[at + 1], sizeof(EditorRow) * (E.displayLength - at - 1));
+    for(int j = at; j < E.displayLength - 1; j++) E.row[j].idx--;
     E.displayLength--;
     E.dirty++;
 }
