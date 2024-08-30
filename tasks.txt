@@ -1,0 +1,5 @@
+replace all char* with a struct alternative that supports alternate encodings
+
+line 794
+
+
