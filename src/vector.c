@@ -36,6 +36,13 @@ void vector_term(struct vector* self) {
     free(self);
 }
 
+void vector_term_ptrs(struct vector* self) {
+    for (int i = 0; i < self->num_elements; i++) {
+        free(vector_get(self, i));
+    }
+    vector_term(self);
+}
+
 // dont add 2 different types to my vector
 void vector_add(struct vector* self, void* data) {
     if (self->num_elements + 1 == self->max_elements) {
