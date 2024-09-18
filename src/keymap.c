@@ -2,6 +2,7 @@
 #include <string.h>
 #include "../include/keymap.h"
 #include "../include/editor.h"
+#include "../include/vector.h"
 
 typedef struct {
     int key;
@@ -9,67 +10,78 @@ typedef struct {
     const char* desc;
 } Map;
 
-typedef struct {
-    int size;
-    Map maps[];
-} Keymap;
-
-void KeymapAdd(Keymap* keymap, Map map) {
-    keymap->size++;
-
+Map* moveMapToHeap(Map map) {
+    Map* newMap = malloc(sizeof(Map));
+    newMap->action = map.action;
+    newMap->desc = map.desc;
+    newMap->key = map.key;
+    return newMap;
 }
 
-int normal_mode_keymap_length = 6;
-Keymap normal_mode_keymap = {
-    6,
-    {
-        {'i', ACTION_ENTER_INSERT_MODE, "Enter insert mode"},
-        {'v', ACTION_ENTER_VISUAL_MODE, "Enter visual mode"},
-        {ARROW_RIGHT, ACTION_MOVE_CURSOR_RIGHT, "Move cursor right"},
-        {ARROW_LEFT, ACTION_MOVE_CURSOR_LEFT, "Move cursor left"},
-        {ARROW_UP, ACTION_MOVE_CURSOR_UP, "Move cursor up"},
-        {ARROW_DOWN, ACTION_MOVE_CURSOR_DOWN, "Move cursor down"},
+Map normal_keymap[] = {
+    {'i', ACTION_ENTER_INSERT_MODE, "Enter insert mode"},
+    {'v', ACTION_ENTER_VISUAL_MODE, "Enter visual mode"},
+    {ARROW_RIGHT, ACTION_MOVE_CURSOR_RIGHT, "Move cursor right"},
+    {ARROW_LEFT, ACTION_MOVE_CURSOR_LEFT, "Move cursor left"},
+    {ARROW_UP, ACTION_MOVE_CURSOR_UP, "Move cursor up"},
+    {ARROW_DOWN, ACTION_MOVE_CURSOR_DOWN, "Move cursor down"},
+};
+int normal_keymap_length = 6;
+
+Map visual_keymap[] = {
+    {'\x1b', ACTION_ENTER_NORMAL_MODE, "Exit visual mode"}
+};
+int visual_keymap_length = 1;
+
+Map insert_keymap[] = {
+    {'\x1b', ACTION_ENTER_NORMAL_MODE, "Exit insert mode"}
+};
+int insert_keymap_length = 1;
+
+struct vector* normal_mode_keymap_vector;
+struct vector* insert_mode_keymap_vector;
+struct vector* visual_mode_keymap_vector;
+
+struct vector* currKeymap_vector;
+
+void initKeymaps() {
+    normal_mode_keymap_vector = vector_init(malloc(sizeof(struct vector)), sizeof(Map));
+    insert_mode_keymap_vector = vector_init(malloc(sizeof(struct vector)), sizeof(Map));
+    visual_mode_keymap_vector = vector_init(malloc(sizeof(struct vector)), sizeof(Map));
+
+    for (int i = 0; i < normal_keymap_length; i++) {
+        vector_add(normal_mode_keymap_vector, moveMapToHeap(normal_keymap[i]));
     }
-};
-
-int insert_mode_keymap_length = 1;
-Keymap insert_mode_keymap[] = {
-    {'\x1b', ACTION_ENTER_NORMAL_MODE, "Exit insert mode"},
-};
-
-int visual_mode_keymap_length = 1;
-Keymap visual_mode_keymap[] = {
-    {'\x1b', ACTION_ENTER_NORMAL_MODE, "Exit visual mode"},
-};
-
-Keymap* currKeymap = &normal_mode_keymap;
-int* currKeymap_length = &normal_mode_keymap_length;
+    for (int i = 0; i < insert_keymap_length; i++) {
+        vector_add(insert_mode_keymap_vector, moveMapToHeap(insert_keymap[i]));
+    }
+    for (int i = 0; i < visual_keymap_length; i++) {
+        vector_add(visual_mode_keymap_vector, moveMapToHeap(visual_keymap[i]));
+    }
+}
 
 EditorAction keyMapLookup(int key) {
-    for (int i = 0; i < *currKeymap_length; i++) {
-        if (key == currKeymap[i]->key) return currKeymap[i].action;
+    for (int i = 0; i < currKeymap_vector->num_elements; i++) {
+        Map* map = (Map *)vector_get(currKeymap_vector, i);
+        if (key == map->key) return map->action;
     }
     return ACTION_UNKOWN;
 }
 
 
-int getEditorActionFromKey(EditorMode mode, int key) {
+EditorAction getEditorActionFromKey(EditorMode mode, int key) {
     switch (mode) {
         case EDITOR_NORMAL_MODE:
-            currKeymap = normal_mode_keymap;
-            currKeymap_length= &normal_mode_keymap_length;
+            currKeymap_vector = normal_mode_keymap_vector;
             break;
         case EDITOR_INSERT_MODE:
-            currKeymap = insert_mode_keymap;
-            currKeymap_length = &insert_mode_keymap_length;
+            currKeymap_vector = insert_mode_keymap_vector;
             break;
         case EDITOR_VISUAL_MODE:
-            currKeymap = visual_mode_keymap;
-            currKeymap_length = &visual_mode_keymap_length;
+            currKeymap_vector = visual_mode_keymap_vector;
             break;
         case EDITOR_COMMAND_MODE:
-            currKeymap = NULL;
-            *currKeymap_length = 0;
+            currKeymap_vector = NULL;
             break;
     }
     return keyMapLookup(key);

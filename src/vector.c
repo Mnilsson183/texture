@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <strings.h>
 
-
-
 struct vector* vector_init_size(struct vector* self, int element_size, int initSize) {
     if (initSize <= 0) return NULL;
     if (element_size <= 0) return  NULL;
@@ -62,6 +60,15 @@ void vector_add(struct vector* self, void* data) {
     }
     self->data[self->num_elements] = data;
     self->num_elements++;
+}
+
+// length is arr length
+// size is the element size
+void vector_add_data(struct vector* self, void** data, int dataLength) {
+    for (int i = 0; i < dataLength; i++) {
+        vector_add(self, data[self->element_size*i]);
+        if (self->status != OK) return;
+    }
 }
 
 void* vector_get(struct vector* self, int index) {

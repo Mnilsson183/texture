@@ -1,1 +1,9 @@
-int getEditorActionFromKey(int mode, const char* key, int code);
+#include "../include/editor.h"
+
+#ifndef KEYMAP_H
+#define KEYMAP_H
+
+EditorAction getEditorActionFromKey(EditorMode mode, int key);
+void initKeymaps(void);
+
+#endif

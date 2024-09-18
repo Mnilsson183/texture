@@ -1,6 +1,9 @@
 #include <termios.h>
 #include <time.h>
 
+#ifndef EDITOR_H
+#define EDITOR_H
+
 #define TEXTURE_VERSION "2.01"
 #define TEXTURE_TAB_STOP 4
 #define TEXTURE_QUIT_TIMES 3
@@ -91,3 +94,4 @@ struct EditorScreens{
     // default terminal settings
     struct termios orig_termios;
 };
+#endif
