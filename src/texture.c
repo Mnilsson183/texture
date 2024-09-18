@@ -775,7 +775,16 @@ void editorPreformEditorAction(EditorAction action, const char* input) {
     }
 }
 
-void editorProcessKeyPress(void){
+void editorProcessKeyPress(void) {
+    int c = editorReadKey();
+    EditorMode mode = E.editors[E.screenNumber].mode;
+    EditorAction action = getEditorActionFromKey(mode, c);
+    if (mode == EDITOR_INSERT_MODE && action == ACTION_UNKOWN) {
+        editorInsertChar(c);
+    } else editorPreformEditorAction(action, NULL);
+}
+
+void editorProcessKeyPressBackup(void){
     int c = editorReadKey();
     static int quit_times = TEXTURE_QUIT_TIMES;
 
@@ -1032,7 +1041,7 @@ void editorDrawStatusBar(struct AppendBuffer *ab){
             break;
     }
     char status[80], rStatus[80];
-    int length = snprintf(status, sizeof(status), "%.20s - %d lines %s- %s - screen number %d | %s", 
+    int length = snprintf(status, sizeof(status), "%.20s - %d lines %s - %s - screen number %d | %s", 
         E.editors[E.screenNumber].fileName ? E.editors[E.screenNumber].fileName : "[No Name]", E.editors[E.screenNumber].displayLength,
         E.editors[E.screenNumber].dirty ? "(modified)": "",
         convertModeToString(),
@@ -1132,6 +1141,10 @@ void initEditor(void){
     E.screenNumber = SCREEN_MIN;
 }
 
+void initPlugins(void) {
+    initKeymaps();
+}
+
 int main(int argc, char* argv[]){
     enableRawMode(E);
     initEditor();
@@ -1139,6 +1152,7 @@ int main(int argc, char* argv[]){
     if (argc >= 2){
         editorOpen(argv[1]);
     }
+    initPlugins();
 
     editorSetStatusMessage("HELP: Ctrl-q to quit | Ctrl-s to save | Ctrl-f find | 'O' open file");
     
