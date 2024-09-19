@@ -24,7 +24,6 @@
 #include "../include/keymap.h"
 
 /** DEFINES**/
-#define CTRL_KEY(key) ((key) & 0x1f)
 
 #define true 1
 #define false 0
@@ -683,6 +682,15 @@ int editorSetRow(int row){
     return 0;
 }
 
+void editorQuitTexture(void) {
+
+    // write the 4 byte erase in display to the screen
+    write(STDOUT_FILENO, "\x1b[2J", 4);
+    // move the cursor to the 1,1 position in the terminal
+    write(STDOUT_FILENO, "\x1b[H", 3);
+    exit(0);
+}
+
 void handleCommand(const char* s){
     char command = s[0];
     printf("%c",command);
@@ -696,6 +704,8 @@ void handleCommand(const char* s){
     }
     int lineNumber = atoi(str);
     switch(command){
+        case 'q':
+            editorQuitTexture();
         case 'l':
             if(editorSetRow(lineNumber) == -1){
                 editorSetStatusMessage("line number is impossible");
@@ -727,18 +737,14 @@ void editorSwitchScreenDown(void){
     }
 }
 
-void editorQuitTexture(void) {
-
-    // write the 4 byte erase in display to the screen
-    write(STDOUT_FILENO, "\x1b[2J", 4);
-    // move the cursor to the 1,1 position in the terminal
-    write(STDOUT_FILENO, "\x1b[H", 3);
-    exit(0);
-}
 
 void editorPreformEditorAction(EditorAction action, const char* input) {
     switch (action) {
         case ACTION_UNKOWN: return;
+        case ACTION_IGNORE: return;
+        case ACTION_EXECUTE_DIR:
+            handleCommand(input);
+            break;
         case ACTION_ENTER_INSERT_MODE:
             E.editors[E.screenNumber].mode = EDITOR_INSERT_MODE;
             break;
@@ -771,6 +777,24 @@ void editorPreformEditorAction(EditorAction action, const char* input) {
             break;
         case ACTION_EXIT_EDITOR:
             editorQuitTexture();
+            break;
+        case ACTION_INSERT_NEWLINE:
+            editorInsertNewLine();
+            break;
+        case ACTION_MOVE_HOME_KEY:
+            E.editors[E.screenNumber].cx = 0;
+            break;
+        case ACTION_MOVE_END_KEY:
+            if (E.editors[E.screenNumber].cy < E.editors[E.screenNumber].displayLength){
+                E.editors[E.screenNumber].cx = E.editors[E.screenNumber].row[E.editors[E.screenNumber].cy].size;
+            }
+            break;
+        case ACTION_REMOVE_BACKSPACE:
+            editorDeleteChar();
+            break;
+        case ACTION_REMOVE_DEL_KEY:
+            editorMoveCursor(ARROW_RIGHT);
+            editorDeleteChar();
             break;
     }
 }

@@ -25,18 +25,29 @@ Map normal_keymap[] = {
     {ARROW_LEFT, ACTION_MOVE_CURSOR_LEFT, "Move cursor left"},
     {ARROW_UP, ACTION_MOVE_CURSOR_UP, "Move cursor up"},
     {ARROW_DOWN, ACTION_MOVE_CURSOR_DOWN, "Move cursor down"},
+    {CTRL_KEY('s'), ACTION_FS_SAVE_FILE, "Save the current buffer"},
 };
-int normal_keymap_length = 6;
+#define NORMAL_LENGTH sizeof(normal_keymap) / sizeof(normal_keymap[0])
 
 Map visual_keymap[] = {
     {'\x1b', ACTION_ENTER_NORMAL_MODE, "Exit visual mode"}
 };
-int visual_keymap_length = 1;
+#define VISUAL_LENGTH sizeof(visual_keymap) / sizeof(visual_keymap[0])
 
 Map insert_keymap[] = {
-    {'\x1b', ACTION_ENTER_NORMAL_MODE, "Exit insert mode"}
+    {'\x1b', ACTION_ENTER_NORMAL_MODE, "Exit insert mode"},
+    {'\r', ACTION_INSERT_NEWLINE, "Insert Newline"},
+    {HOME_KEY, ACTION_MOVE_HOME_KEY, "Move with the home key"},
+    {END_KEY, ACTION_MOVE_END_KEY, "Move with the end key"},
+    {BACKSPACE, ACTION_REMOVE_BACKSPACE, "Backspace"},
+    {CTRL_KEY('h'), ACTION_REMOVE_BACKSPACE, "Backspace"},
+    {DEL_KEY, ACTION_REMOVE_DEL_KEY, "Del"},
+    {ARROW_RIGHT, ACTION_MOVE_CURSOR_RIGHT, "Move cursor right"},
+    {ARROW_LEFT, ACTION_MOVE_CURSOR_LEFT, "Move cursor left"},
+    {ARROW_UP, ACTION_MOVE_CURSOR_UP, "Move cursor up"},
+    {ARROW_DOWN, ACTION_MOVE_CURSOR_DOWN, "Move cursor down"},
 };
-int insert_keymap_length = 1;
+#define INSERT_LENGTH sizeof(insert_keymap) / sizeof(insert_keymap[0])
 
 struct vector* normal_mode_keymap_vector;
 struct vector* insert_mode_keymap_vector;
@@ -49,13 +60,13 @@ void initKeymaps() {
     insert_mode_keymap_vector = vector_init(malloc(sizeof(struct vector)), sizeof(Map));
     visual_mode_keymap_vector = vector_init(malloc(sizeof(struct vector)), sizeof(Map));
 
-    for (int i = 0; i < normal_keymap_length; i++) {
+    for (int i = 0; i < NORMAL_LENGTH; i++) {
         vector_add(normal_mode_keymap_vector, moveMapToHeap(normal_keymap[i]));
     }
-    for (int i = 0; i < insert_keymap_length; i++) {
+    for (int i = 0; i < INSERT_LENGTH; i++) {
         vector_add(insert_mode_keymap_vector, moveMapToHeap(insert_keymap[i]));
     }
-    for (int i = 0; i < visual_keymap_length; i++) {
+    for (int i = 0; i < VISUAL_LENGTH; i++) {
         vector_add(visual_mode_keymap_vector, moveMapToHeap(visual_keymap[i]));
     }
 }
