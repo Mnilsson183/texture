@@ -22,6 +22,7 @@
 #include "../include/utils.h"
 #include "../include/render.h"
 #include "../include/keymap.h"
+#include "../include/editor.h"
 
 /** DEFINES**/
 
@@ -44,7 +45,7 @@ enum editorHighlight{
 void editorSetStatusMessage(const char *fmt, ...);
 void editorRefreshScreen(void);
 char *editorPrompt(char *prompt, void (*callback)(char *, int));
-void initScreen(int screen);
+void initBuffer(int screen);
 
 
 // global var that is the default settings of terminal
@@ -248,61 +249,6 @@ void editorSelectSyntaxHighlight(void){
 
 /* row operations */
 
-int editorRowCxToRx(EditorRow *row, int cx){
-    int rx = 0;
-    int j;
-    for(j = 0; j < cx; j++){
-        if (row->chars[j] == '\t'){
-            rx += (TEXTURE_TAB_STOP - 1) - (rx % TEXTURE_TAB_STOP);
-        }
-        rx++;
-    }
-    return rx;
-}
-
-int editorRowRxToCx(EditorRow *row, int rx){
-    int cur_rx = 0;
-    int cx;
-    for(cx = 0; cx < row->size; cx++){
-        if (row->chars[cx] == '\t'){
-            cur_rx += (TEXTURE_TAB_STOP - 1) - (cur_rx % TEXTURE_TAB_STOP);
-        }
-        cur_rx++;
-        if(cur_rx > rx){
-            return cx;
-        }
-    }
-    return cx;
-}
-
-void editorUpdateRow(EditorRow *row){
-    int tabs = 0;
-    int j;
-    for (j = 0; j < row->size; j++){
-        if (row->chars[j] == '\t'){
-            tabs++;
-        }
-    }
-    free(row->render);
-    row->render = (char *)malloc(row->size + ( tabs * (TEXTURE_TAB_STOP - 1)) + 1);
-
-    int tempLength = 0;
-    for (j = 0; j < row->size; j++){
-        if (row->chars[j] == '\t'){
-            row->render[tempLength++] = ' ';
-            while (tempLength % TEXTURE_TAB_STOP != 0){
-                row->render[tempLength++] = ' ';
-            }
-        } else{
-            row->render[tempLength++] = row->chars[j];
-        }
-    }
-    row->render[tempLength] = '\0';
-    row->renderSize = tempLength;
-
-    editorUpdateSyntax(row);
-}
-
 void editorInsertRow(int at, char* s, size_t length){
     if(at < 0 || at > E.editors[E.screenNumber].displayLength){
         return;
@@ -447,7 +393,7 @@ void editorOpen(const char* filename){
         editorSetStatusMessage("WARNING!! file has unsaved changes. Please save changes of clear editor");
         return;
     }
-    initScreen(E.screenNumber);
+    initBuffer(E.screenNumber);
 
     E.editors[E.screenNumber].fileName = (char* )filename;
 
@@ -723,18 +669,24 @@ void handleCommand(const char* s){
 }
 
 // cannot change E.screen number directly or might try to use non created value
-void editorSwitchScreenUp(void){
-    E.screenNumber++;
+void editorSwitchScreen(int diff){
+    E.screenNumber += diff;
     if(E.screenNumber > SCREEN_MAX){
         E.screenNumber = SCREEN_MIN;
     }
-}
 
-void editorSwitchScreenDown(void){
-    E.screenNumber--;
     if(E.screenNumber < SCREEN_MIN){
         E.screenNumber = SCREEN_MAX;
     }
+    E.currBuffer = &E.editors[E.screenNumber];
+}
+
+void editorAppendActionBuffer(char c) {
+    int i = strlen(E.editors[E.screenNumber].actionBuffer);
+    if (i == 40) return;
+    E.editors[E.screenNumber].actionBuffer[i] = c;
+    E.editors[E.screenNumber].actionBuffer[i + 1] = '\0';
+
 }
 
 
@@ -767,13 +719,13 @@ void editorPreformEditorAction(EditorAction action, const char* input) {
             editorOpen(input);
             break;
         case ACTION_EDITOR_WINDOWS_CYCLE_FORWARD:
-            editorSwitchScreenUp();
+            editorSwitchScreen(1);
             break;
         case ACTION_EDITOR_WINDOWS_CYCLE_BACKWARD:
-            editorSwitchScreenDown();
+            editorSwitchScreen(1);
             break;
         case ACTION_EDITOR_WINDOWS_EXIT:
-            initScreen(E.screenNumber);
+            initBuffer(E.screenNumber);
             break;
         case ACTION_EXIT_EDITOR:
             editorQuitTexture();
@@ -796,16 +748,25 @@ void editorPreformEditorAction(EditorAction action, const char* input) {
             editorMoveCursor(ARROW_RIGHT);
             editorDeleteChar();
             break;
+        // values are caught early
+        case ACTION_WAIT:
+        case ACTION_DISCARD:
+            break;
     }
 }
 
 void editorProcessKeyPress(void) {
     int c = editorReadKey();
     EditorMode mode = E.editors[E.screenNumber].mode;
-    EditorAction action = getEditorActionFromKey(mode, c);
+    editorAppendActionBuffer(c);
+    editorSetStatusMessage("%s", E.editors[E.screenNumber].actionBuffer);
+    EditorAction action = getEditorActionFromKey(mode, E.editors[E.screenNumber].actionBuffer);
     if (mode == EDITOR_INSERT_MODE && action == ACTION_UNKOWN) {
         editorInsertChar(c);
-    } else editorPreformEditorAction(action, NULL);
+    } else {
+        editorPreformEditorAction(action, NULL);
+    }
+    E.editors[E.screenNumber].actionBuffer[0] = '\0';
 }
 
 void editorProcessKeyPressBackup(void){
@@ -830,10 +791,10 @@ void editorProcessKeyPressBackup(void){
                 break;
 
             case CTRL_KEY('x'):
-                editorSwitchScreenUp();
+                editorSwitchScreen(1);
                 break;
             case CTRL_KEY('z'):
-                editorSwitchScreenDown();
+                editorSwitchScreen(-1);
                 break;
             // exit current
             case CTRL_KEY('c'):
@@ -843,7 +804,7 @@ void editorProcessKeyPressBackup(void){
                     quit_times--;
                     return;
                 }
-                initScreen(E.screenNumber);
+                initBuffer(E.screenNumber);
                 break;
             // exit all
             case CTRL_KEY('q'):
@@ -1065,14 +1026,16 @@ void editorDrawStatusBar(struct AppendBuffer *ab){
             break;
     }
     char status[80], rStatus[80];
-    int length = snprintf(status, sizeof(status), "%.20s - %d lines %s - %s - screen number %d | %s", 
+    int length = snprintf(status, sizeof(status), "%.20s - %d lines %s - %s - screen number %d | %s",
         E.editors[E.screenNumber].fileName ? E.editors[E.screenNumber].fileName : "[No Name]", E.editors[E.screenNumber].displayLength,
         E.editors[E.screenNumber].dirty ? "(modified)": "",
         convertModeToString(),
         E.screenNumber,
         E.editors[E.screenNumber].infoLine);
-    int rlen = snprintf(rStatus, sizeof(rStatus), "%s | %d/%d",
-        E.editors[E.screenNumber].syntax ? E.editors[E.screenNumber].syntax->filetype : "No Filetype", E.editors[E.screenNumber].cy + 1, E.editors[E.screenNumber].displayLength);
+    int rlen = snprintf(rStatus, sizeof(rStatus),"%s | %d/%d",
+        E.editors[E.screenNumber].syntax ? E.editors[E.screenNumber].syntax->filetype : "No Filetype",
+        E.editors[E.screenNumber].cy + 1, 
+        E.editors[E.screenNumber].displayLength);
     if(length > E.editors[E.screenNumber].screenColumns){
         length = E.editors[E.screenNumber].screenColumns;
     }
@@ -1136,7 +1099,7 @@ void editorSetStatusMessage(const char *fmt, ...){
 }
 
 /** INIT **/
-void initScreen(int screen){
+void initBuffer(int screen){
     // cursor positions
     E.editors[screen].cx = 0;
     E.editors[screen].cy = 0;
@@ -1149,6 +1112,7 @@ void initScreen(int screen){
     E.editors[screen].row = NULL;
     E.editors[screen].fileName = NULL;
     E.editors[screen].statusMessage[0] = '\0';
+    E.editors[screen].actionBuffer[0] = '\0';
     E.editors[screen].statusMessage_time = 0;
     E.editors[screen].syntax = NULL;
 
@@ -1160,7 +1124,7 @@ void initScreen(int screen){
 
 void initEditor(void){
     for(int i = SCREEN_MIN; i <= SCREEN_MAX; i++){
-        initScreen(i);
+        initBuffer(i);
     }
     E.screenNumber = SCREEN_MIN;
 }

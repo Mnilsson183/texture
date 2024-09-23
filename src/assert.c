@@ -49,3 +49,13 @@ int assertNotEquals(int one, int two, const char* msg) {
         return 1;
     }
 }
+
+int assertNULL(void* one, const char* msg) {
+    if (one != NULL) {
+        failedTest(msg);
+        return 1;
+    } else {
+        okTest(msg);
+        return 0;
+    }
+}

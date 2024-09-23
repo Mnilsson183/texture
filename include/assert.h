@@ -3,6 +3,7 @@
 
 int assertEquals(int one, int two, const char* msg);
 int assertNotEquals(int one, int two, const char* msg);
+int assertNULL(void* one, const char* msg);
 
 void allTestsPassing(const char* msg);
 

@@ -3,9 +3,13 @@
 #ifndef KEYMAP_H
 #define KEYMAP_H
 
+#define STRING(enum_value) #enum_value "\0"
+
 typedef enum {
 	ACTION_UNKOWN,
 	ACTION_IGNORE,
+	ACTION_DISCARD,
+	ACTION_WAIT,
 	ACTION_ENTER_INSERT_MODE,
 	ACTION_ENTER_VISUAL_MODE,
 	ACTION_ENTER_NORMAL_MODE,
@@ -25,6 +29,7 @@ typedef enum {
 
 	ACTION_REMOVE_BACKSPACE,
 	ACTION_REMOVE_DEL_KEY,
+	ACTION_REMOVE_LINE,
 
 	ACTION_MOVE_HOME_KEY,
 	ACTION_MOVE_END_KEY,
@@ -32,7 +37,8 @@ typedef enum {
 
 #define CTRL_KEY(key) ((key) & 0x1f)
 
-EditorAction getEditorActionFromKey(EditorMode mode, int key);
+EditorAction getEditorActionFromKey(EditorMode mode, const char* action);
 void initKeymaps(void);
+int myStrncmp(const char*, const char*);
 
 #endif

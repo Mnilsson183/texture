@@ -52,7 +52,7 @@ typedef struct EditorRow {
     unsigned char *highLight;
 } EditorRow;
 
-struct EditorConfig{
+struct EditorBuffer{
     // cursor position
     int cx, cy;
     int rx;
@@ -62,6 +62,7 @@ struct EditorConfig{
     int columnOffset;
     int dirty;
     char* infoLine;
+    char actionBuffer[40];
     // rows and columns of the terminal
     int screenRows, screenColumns;
     int displayLength;
@@ -70,12 +71,19 @@ struct EditorConfig{
     struct EditorSyntax *syntax;
     char statusMessage[80];
     time_t statusMessage_time;
+
 };
 
 struct EditorScreens{
-    struct EditorConfig editors[SCREEN_MAX+1];
+    struct EditorBuffer editors[SCREEN_MAX+1];
+    struct EditorBuffer* currBuffer;
     int screenNumber;
     // default terminal settings
     struct termios orig_termios;
 };
+
+int editorRowCxToRx(EditorRow *row, int cx);
+int editorRowRxToCx(EditorRow *row, int rx);
+void editorUpdateRow(EditorRow *row);
+
 #endif
