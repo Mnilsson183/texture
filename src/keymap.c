@@ -20,7 +20,7 @@ Map* moveMapToHeap(Map map) {
 }
 
 Map normal_keymap[] = {
-    {"q", ACTION_EDITOR_WINDOWS_EXIT, "Exit editor window"},
+    {":", ACTION_GET_INPUT, "Get for input"},
     {"i", ACTION_ENTER_INSERT_MODE, "Enter insert mode"},
     {"v", ACTION_ENTER_VISUAL_MODE, "Enter visual mode"},
     {STRING(ARROW_RIGHT), ACTION_MOVE_CURSOR_RIGHT, "Move cursor right"},
@@ -28,6 +28,7 @@ Map normal_keymap[] = {
     {STRING(ARROW_UP), ACTION_MOVE_CURSOR_UP, "Move cursor up"},
     {STRING(ARROW_DOWN), ACTION_MOVE_CURSOR_DOWN, "Move cursor down"},
     {STRING(CTRL_KEY('s')), ACTION_FS_SAVE_FILE, "Save the current buffer"},
+    {"d", ACTION_WAIT, "Wait for next enter"},
     {"dd", ACTION_REMOVE_LINE, "Delete the current line"},
     {"l", ACTION_MOVE_CURSOR_RIGHT, "Move cursor right"},
     {"h", ACTION_MOVE_CURSOR_LEFT, "Move cursor left"},

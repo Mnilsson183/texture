@@ -71,7 +71,6 @@ struct EditorBuffer{
     struct EditorSyntax *syntax;
     char statusMessage[80];
     time_t statusMessage_time;
-
 };
 
 struct EditorScreens{
@@ -85,5 +84,8 @@ struct EditorScreens{
 int editorRowCxToRx(EditorRow *row, int cx);
 int editorRowRxToCx(EditorRow *row, int rx);
 void editorUpdateRow(EditorRow *row);
+void editorFreeRow(EditorRow* row);
+void editorInsertRow(int at, char* s, size_t length, struct EditorBuffer* buf);
+void editorMoveCursor(int key, struct EditorBuffer* buf);
 
 #endif

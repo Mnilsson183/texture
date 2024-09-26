@@ -249,35 +249,6 @@ void editorSelectSyntaxHighlight(void){
 
 /* row operations */
 
-void editorInsertRow(int at, char* s, size_t length){
-    if(at < 0 || at > E.editors[E.screenNumber].displayLength){
-        return;
-    }
-
-    E.editors[E.screenNumber].row = (EditorRow *)realloc(E.editors[E.screenNumber].row, sizeof(EditorRow) * (E.editors[E.screenNumber].displayLength + 1));
-    memmove(&E.editors[E.screenNumber].row[at + 1], &E.editors[E.screenNumber].row[at], sizeof(EditorRow) * (E.editors[E.screenNumber].displayLength - at));
-
-    // add a row to display
-    E.editors[E.screenNumber].row[at].size = length;
-    E.editors[E.screenNumber].row[at].chars = (char *)malloc(length + 1);
-    memcpy(E.editors[E.screenNumber].row[at].chars, s, length);
-    E.editors[E.screenNumber].row[at].chars[length] = '\0';
-
-    E.editors[E.screenNumber].row[at].renderSize = 0;
-    E.editors[E.screenNumber].row[at].render = NULL;
-    E.editors[E.screenNumber].row[at].highLight = NULL;
-    editorUpdateRow(&E.editors[E.screenNumber].row[at]);
-
-    E.editors[E.screenNumber].displayLength++;
-    E.editors[E.screenNumber].dirty++;
-}
-
-void editorFreeRow(EditorRow *row){
-    free(row->render);
-    free(row->chars);
-    free(row->highLight);
-}
-
 void editorDeleteRow(int at){
     if(at < 0 || at >= E.editors[E.screenNumber].displayLength){
         return;
@@ -322,7 +293,7 @@ void editorRowDeleteChar(EditorRow *row, int at){
 /* Editor Functions */
 void editorInsertChar(int c){
     if (E.editors[E.screenNumber].cy == E.editors[E.screenNumber].displayLength){
-        editorInsertRow(E.editors[E.screenNumber].displayLength, "",0);
+        editorInsertRow(E.editors[E.screenNumber].displayLength, "", 0, &E.editors[E.screenNumber]);
     }
     editorRowInsertChar(&E.editors[E.screenNumber].row[E.editors[E.screenNumber].cy], E.editors[E.screenNumber].cx, c);
     E.editors[E.screenNumber].cx++;
@@ -330,10 +301,10 @@ void editorInsertChar(int c){
 
 void editorInsertNewLine(void){
     if(E.editors[E.screenNumber].cx == 0){
-        editorInsertRow(E.editors[E.screenNumber].cy, "", 0);
+        editorInsertRow(E.editors[E.screenNumber].cy, "", 0, &E.editors[E.screenNumber]);
     } else{
         EditorRow *row = &E.editors[E.screenNumber].row[E.editors[E.screenNumber].cy];
-        editorInsertRow(E.editors[E.screenNumber].cy + 1, &row->chars[E.editors[E.screenNumber].cx], row->size - E.editors[E.screenNumber].cx);
+        editorInsertRow(E.editors[E.screenNumber].cy + 1, &row->chars[E.editors[E.screenNumber].cx], row->size - E.editors[E.screenNumber].cx, &E.editors[E.screenNumber]);
         row = &E.editors[E.screenNumber].row[E.editors[E.screenNumber].cy];
         row->size = E.editors[E.screenNumber].cx;
         row->chars[row->size] = '\0';
@@ -415,7 +386,7 @@ void editorOpen(const char* filename){
                                     (line[lineLength - 1] == '\n')))
         {
             lineLength--;
-            editorInsertRow(E.editors[E.screenNumber].displayLength, line, lineLength);
+            editorInsertRow(E.editors[E.screenNumber].displayLength, line, lineLength, &E.editors[E.screenNumber]);
         }
     }
     free(line);
@@ -578,49 +549,6 @@ char *editorPrompt(char *prompt, void (*callback)(char *, int)){
     }
 }
 
-void editorMoveCursor(int key){
-    EditorRow* row = (E.editors[E.screenNumber].cy >= E.editors[E.screenNumber].displayLength) ? NULL: &E.editors[E.screenNumber].row[E.editors[E.screenNumber].cy];
-    
-    // update the cursor position based on the key inputs
-    switch (key)
-    {
-        case ARROW_LEFT:
-            if (E.editors[E.screenNumber].cx != 0){
-                E.editors[E.screenNumber].cx--;
-            } else if(E.editors[E.screenNumber].cy > 0){
-                E.editors[E.screenNumber].cy--;
-                E.editors[E.screenNumber].cx = E.editors[E.screenNumber].row[E.editors[E.screenNumber].cy].size;
-            }
-            break;
-        case ARROW_RIGHT:
-            if (row && E.editors[E.screenNumber].cx < row->size){
-                E.editors[E.screenNumber].cx++;
-            // if go right on a the end of line
-            } else if(row && E.editors[E.screenNumber].cx == row->size){
-                E.editors[E.screenNumber].cy++;
-                E.editors[E.screenNumber].cx = 0;
-            }
-            break;
-        case ARROW_UP:
-            if (E.editors[E.screenNumber].cy != 0){
-                E.editors[E.screenNumber].cy--;
-            }
-            break;
-        case ARROW_DOWN:
-            if (E.editors[E.screenNumber].cy < E.editors[E.screenNumber].displayLength){
-                E.editors[E.screenNumber].cy++;
-            }
-            break;
-    }
-
-    // snap cursor to the end of line
-    row = (E.editors[E.screenNumber].cy >= E.editors[E.screenNumber].displayLength) ? NULL : &E.editors[E.screenNumber].row[E.editors[E.screenNumber].cy];
-    int rowLength = row ? row->size : 0;
-    if (E.editors[E.screenNumber].cx > rowLength){
-        E.editors[E.screenNumber].cx = rowLength;
-    }
-}
-
 int editorSetRow(int row){
     if(row > E.editors[E.screenNumber].displayLength) row = E.editors[E.screenNumber].displayLength;
     else if(row < 0) row = 0;
@@ -710,7 +638,7 @@ void editorPreformEditorAction(EditorAction action, const char* input) {
         case ACTION_MOVE_CURSOR_LEFT:
         case ACTION_MOVE_CURSOR_UP:
         case ACTION_MOVE_CURSOR_DOWN:
-            editorMoveCursor(action);
+            editorMoveCursor(action, &E.editors[E.screenNumber]);
             break;
         case ACTION_FS_SAVE_FILE:
             editorSave();
@@ -745,7 +673,7 @@ void editorPreformEditorAction(EditorAction action, const char* input) {
             editorDeleteChar();
             break;
         case ACTION_REMOVE_DEL_KEY:
-            editorMoveCursor(ARROW_RIGHT);
+            editorMoveCursor(ARROW_RIGHT, &E.editors[E.screenNumber]);
             editorDeleteChar();
             break;
         // values are caught early
@@ -757,11 +685,10 @@ void editorPreformEditorAction(EditorAction action, const char* input) {
 
 void editorProcessKeyPress(void) {
     int c = editorReadKey();
-    EditorMode mode = E.editors[E.screenNumber].mode;
     editorAppendActionBuffer(c);
     editorSetStatusMessage("%s", E.editors[E.screenNumber].actionBuffer);
-    EditorAction action = getEditorActionFromKey(mode, E.editors[E.screenNumber].actionBuffer);
-    if (mode == EDITOR_INSERT_MODE && action == ACTION_UNKOWN) {
+    EditorAction action = getEditorActionFromKey(E.editors[E.screenNumber].mode, E.editors[E.screenNumber].actionBuffer);
+    if (E.editors[E.screenNumber].mode == EDITOR_INSERT_MODE && action == ACTION_UNKOWN) {
         editorInsertChar(c);
     } else {
         editorPreformEditorAction(action, NULL);
@@ -832,7 +759,7 @@ void editorProcessKeyPressBackup(void){
             case ARROW_DOWN:
             case ARROW_LEFT:
             case ARROW_RIGHT:
-                editorMoveCursor(c);
+                editorMoveCursor(c, &E.editors[E.screenNumber]);
                 break;
             case CTRL_KEY('l'):
             case '\x1b':
@@ -858,7 +785,7 @@ void editorProcessKeyPressBackup(void){
             case CTRL_KEY('h'):
             case DEL_KEY:
                 if(c == DEL_KEY){
-                    editorMoveCursor(ARROW_RIGHT);
+                    editorMoveCursor(ARROW_RIGHT, &E.editors[E.screenNumber]);
                 }
                 editorDeleteChar();
                 break;
@@ -878,7 +805,7 @@ void editorProcessKeyPressBackup(void){
 
                     int times = E.editors[E.screenNumber].screenRows;
                     while(times--){
-                        editorMoveCursor(c == PAGE_UP ? ARROW_UP : ARROW_DOWN);
+                        editorMoveCursor(c == PAGE_UP ? ARROW_UP : ARROW_DOWN, &E.editors[E.screenNumber]);
                     }
                 }
                 break;
@@ -886,7 +813,7 @@ void editorProcessKeyPressBackup(void){
             case ARROW_DOWN:
             case ARROW_LEFT:
             case ARROW_RIGHT:
-                editorMoveCursor(c);
+                editorMoveCursor(c, &E.editors[E.screenNumber]);
                 break;
             case CTRL_KEY('l'):
             case '\x1b':
@@ -1104,7 +1031,7 @@ void initBuffer(int screen){
     E.editors[screen].cx = 0;
     E.editors[screen].cy = 0;
     E.editors[screen].rx = 0;
-    E.editors[screen].mode = EDITOR_INSERT_MODE;
+    E.editors[screen].mode = EDITOR_NORMAL_MODE;
     E.editors[screen].rowOffset = 0;
     E.editors[screen].columnOffset = 0;
     E.editors[screen].displayLength = 0;
