@@ -87,5 +87,8 @@ void editorUpdateRow(EditorRow *row);
 void editorFreeRow(EditorRow* row);
 void editorInsertRow(int at, char* s, size_t length, struct EditorBuffer* buf);
 void editorMoveCursor(int key, struct EditorBuffer* buf);
+void editorDeleteRow(int at, struct EditorBuffer* buf);
+void editorRowInsertChar(EditorRow *row, int at, int c, int* dirty);
+void editorInsertChar(int c, struct EditorBuffer* buf);
 
 #endif

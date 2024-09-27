@@ -132,3 +132,33 @@ void editorMoveCursor(int key, struct EditorBuffer* buf){
         e.cx = rowLength;
     }
 }
+
+void editorDeleteRow(int at, struct EditorBuffer* buf){
+    if(at < 0 || at >= buf->displayLength){
+        return;
+    }
+    editorFreeRow(&buf->row[at]);
+    memmove(&buf->row[at], &buf->row[at + 1], sizeof(EditorRow) * (buf->displayLength - at - 1));
+    buf->displayLength--;
+    buf->dirty++;
+}
+
+void editorRowInsertChar(EditorRow *row, int at, int c, int* dirty){
+    if (at < 0 || at > row->size){ 
+        at = row->size;
+    }
+    row->chars = (char *)realloc(row->chars, row->size + 2);
+        memmove(&row->chars[at + 1], &row->chars[at], row->size - at + 1);
+        row->size++;
+        row->chars[at] = c;
+        editorUpdateRow(row);
+        (*dirty)++;
+}
+
+void editorInsertChar(int c, struct EditorBuffer* buf){
+    if (buf->cy == buf->displayLength){
+        editorInsertRow(buf->displayLength, "", 0, buf);
+    }
+    editorRowInsertChar(&buf->row[buf->cy], buf->cx, c, &buf->dirty);
+    buf->cx++;
+}

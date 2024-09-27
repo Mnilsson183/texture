@@ -248,29 +248,6 @@ void editorSelectSyntaxHighlight(void){
 }
 
 /* row operations */
-
-void editorDeleteRow(int at){
-    if(at < 0 || at >= E.editors[E.screenNumber].displayLength){
-        return;
-    }
-    editorFreeRow(&E.editors[E.screenNumber].row[at]);
-    memmove(&E.editors[E.screenNumber].row[at], &E.editors[E.screenNumber].row[at + 1], sizeof(EditorRow) * (E.editors[E.screenNumber].displayLength - at - 1));
-    E.editors[E.screenNumber].displayLength--;
-    E.editors[E.screenNumber].dirty++;
-}
-
-void editorRowInsertChar(EditorRow *row, int at, int c){
-    if (at < 0 || at > row->size){ 
-        at = row->size;
-    }
-    row->chars = (char *)realloc(row->chars, row->size + 2);
-        memmove(&row->chars[at + 1], &row->chars[at], row->size - at + 1);
-        row->size++;
-        row->chars[at] = c;
-        editorUpdateRow(row);
-        E.editors[E.screenNumber].dirty++;
-}
-
 void editorRowAppendString(EditorRow *row, char *s, size_t length){
     row->chars = (char *)realloc(row->chars, row->size + length + 1);
     memcpy(&row->chars[row->size], s, length);
@@ -291,14 +268,6 @@ void editorRowDeleteChar(EditorRow *row, int at){
 }
 
 /* Editor Functions */
-void editorInsertChar(int c){
-    if (E.editors[E.screenNumber].cy == E.editors[E.screenNumber].displayLength){
-        editorInsertRow(E.editors[E.screenNumber].displayLength, "", 0, &E.editors[E.screenNumber]);
-    }
-    editorRowInsertChar(&E.editors[E.screenNumber].row[E.editors[E.screenNumber].cy], E.editors[E.screenNumber].cx, c);
-    E.editors[E.screenNumber].cx++;
-}
-
 void editorInsertNewLine(void){
     if(E.editors[E.screenNumber].cx == 0){
         editorInsertRow(E.editors[E.screenNumber].cy, "", 0, &E.editors[E.screenNumber]);
@@ -331,7 +300,7 @@ void editorDeleteChar(void){
     } else{
         E.editors[E.screenNumber].cx = E.editors[E.screenNumber].row[E.editors[E.screenNumber].cy - 1].size;
         editorRowAppendString(&E.editors[E.screenNumber].row[E.editors[E.screenNumber].cy - 1], row->chars, row->size);
-        editorDeleteRow(E.editors[E.screenNumber].cy);
+        editorDeleteRow(E.editors[E.screenNumber].cy, &E.editors[E.screenNumber]);
         E.editors[E.screenNumber].cy--;
     }
 }
@@ -689,7 +658,7 @@ void editorProcessKeyPress(void) {
     editorSetStatusMessage("%s", E.editors[E.screenNumber].actionBuffer);
     EditorAction action = getEditorActionFromKey(E.editors[E.screenNumber].mode, E.editors[E.screenNumber].actionBuffer);
     if (E.editors[E.screenNumber].mode == EDITOR_INSERT_MODE && action == ACTION_UNKOWN) {
-        editorInsertChar(c);
+        editorInsertChar(c, &E.editors[E.screenNumber]);
     } else {
         editorPreformEditorAction(action, NULL);
     }
@@ -820,7 +789,7 @@ void editorProcessKeyPressBackup(void){
             E.editors[E.screenNumber].mode = EDITOR_NORMAL_MODE;
                 break;
             default:
-            editorInsertChar(c);
+            editorInsertChar(c, &E.editors[E.screenNumber]);
             break;
         }
     } else if(E.editors[E.screenNumber].mode == EDITOR_VISUAL_MODE){
@@ -830,7 +799,7 @@ void editorProcessKeyPressBackup(void){
             E.editors[E.screenNumber].mode = EDITOR_NORMAL_MODE;
                 break;
             default:
-            editorInsertChar(c);
+            editorInsertChar(c, &E.editors[E.screenNumber]);
             break;
         }
     } 
