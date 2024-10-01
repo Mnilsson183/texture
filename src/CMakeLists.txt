@@ -8,6 +8,7 @@ add_library(Render STATIC render.c)
 add_library(Vector STATIC vector.c)
 add_library(Editor STATIC editor.c)
 add_library(Highlight STATIC highlight.c)
+add_library(Logger STATIC logger.c)
 
 # Add executable
 add_executable(Texture texture.c)
@@ -19,3 +20,4 @@ target_link_libraries(Texture PRIVATE Render)
 target_link_libraries(Texture PRIVATE Vector)
 target_link_libraries(Texture PRIVATE Editor)
 target_link_libraries(Texture PRIVATE Highlight)
+target_link_libraries(Texture PRIVATE Logger)

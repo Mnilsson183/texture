@@ -57,9 +57,15 @@ Map insert_keymap[] = {
 };
 #define INSERT_LENGTH sizeof(insert_keymap) / sizeof(insert_keymap[0])
 
+Map command_keymap[] = {
+    {"q", ACTION_EDITOR_WINDOWS_EXIT, "Exit current window"}
+};
+#define COMMAND_LENGTH sizeof(command_keymap) / sizeof(command_keymap[0])
+
 struct vector* normal_mode_keymap_vector;
 struct vector* insert_mode_keymap_vector;
 struct vector* visual_mode_keymap_vector;
+struct vector* command_mode_keymap_vector;
 
 struct vector* currKeymap_vector;
 
@@ -67,15 +73,19 @@ void initKeymaps() {
     normal_mode_keymap_vector = vector_init(malloc(sizeof(struct vector)), sizeof(Map));
     insert_mode_keymap_vector = vector_init(malloc(sizeof(struct vector)), sizeof(Map));
     visual_mode_keymap_vector = vector_init(malloc(sizeof(struct vector)), sizeof(Map));
+    command_mode_keymap_vector = vector_init(malloc(sizeof(struct vector)), sizeof(Map));
 
     for (int i = 0; i < NORMAL_LENGTH; i++) {
-        vector_add(normal_mode_keymap_vector, moveMapToHeap(normal_keymap[i]));
+        vector_push(normal_mode_keymap_vector, moveMapToHeap(normal_keymap[i]));
     }
     for (int i = 0; i < INSERT_LENGTH; i++) {
-        vector_add(insert_mode_keymap_vector, moveMapToHeap(insert_keymap[i]));
+        vector_push(insert_mode_keymap_vector, moveMapToHeap(insert_keymap[i]));
     }
     for (int i = 0; i < VISUAL_LENGTH; i++) {
-        vector_add(visual_mode_keymap_vector, moveMapToHeap(visual_keymap[i]));
+        vector_push(visual_mode_keymap_vector, moveMapToHeap(visual_keymap[i]));
+    }
+    for (int i = 0; i < COMMAND_LENGTH; i++) {
+        vector_push(command_mode_keymap_vector, moveMapToHeap(command_keymap[i]));
     }
 }
 

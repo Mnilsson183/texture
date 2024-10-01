@@ -90,5 +90,8 @@ void editorMoveCursor(int key, struct EditorBuffer* buf);
 void editorDeleteRow(int at, struct EditorBuffer* buf);
 void editorRowInsertChar(EditorRow *row, int at, int c, int* dirty);
 void editorInsertChar(int c, struct EditorBuffer* buf);
+void editorRowDeleteChar(EditorRow *row, int at, int* dirty);
+void editorInsertNewLine(struct EditorBuffer* buf);
+void editorRowAppendString(EditorRow *row, char *s, size_t length, int* dirty);
 
 #endif

@@ -247,43 +247,7 @@ void editorSelectSyntaxHighlight(void){
     }
 }
 
-/* row operations */
-void editorRowAppendString(EditorRow *row, char *s, size_t length){
-    row->chars = (char *)realloc(row->chars, row->size + length + 1);
-    memcpy(&row->chars[row->size], s, length);
-    row->size += length;
-    row->chars[row->size] = '\0';
-    editorUpdateRow(row);
-    E.editors[E.screenNumber].dirty++;
-}
-
-void editorRowDeleteChar(EditorRow *row, int at){
-    if (at < 0 || at >= row->size){
-        return;
-    }
-    memmove(&row->chars[at], &row->chars[at + 1], row->size - at);
-    row->size--;
-    editorUpdateRow(row);
-    E.editors[E.screenNumber].dirty++;
-}
-
 /* Editor Functions */
-void editorInsertNewLine(void){
-    if(E.editors[E.screenNumber].cx == 0){
-        editorInsertRow(E.editors[E.screenNumber].cy, "", 0, &E.editors[E.screenNumber]);
-    } else{
-        EditorRow *row = &E.editors[E.screenNumber].row[E.editors[E.screenNumber].cy];
-        editorInsertRow(E.editors[E.screenNumber].cy + 1, &row->chars[E.editors[E.screenNumber].cx], row->size - E.editors[E.screenNumber].cx, &E.editors[E.screenNumber]);
-        row = &E.editors[E.screenNumber].row[E.editors[E.screenNumber].cy];
-        row->size = E.editors[E.screenNumber].cx;
-        row->chars[row->size] = '\0';
-        editorUpdateRow(row);
-    }
-    E.editors[E.screenNumber].cy++;
-    E.editors[E.screenNumber].cx = 0;
-}
-
-
 void editorDeleteChar(void){
     if(E.editors[E.screenNumber].cy == E.editors[E.screenNumber].displayLength){
         return;
@@ -295,11 +259,11 @@ void editorDeleteChar(void){
     EditorRow *row = &E.editors[E.screenNumber].row[E.editors[E.screenNumber].cy];
 
     if(E.editors[E.screenNumber].cx > 0){
-        editorRowDeleteChar(row, E.editors[E.screenNumber].cx - 1);
+        editorRowDeleteChar(row, E.editors[E.screenNumber].cx - 1, &E.editors[E.screenNumber].dirty);
         E.editors[E.screenNumber].cx--;
     } else{
         E.editors[E.screenNumber].cx = E.editors[E.screenNumber].row[E.editors[E.screenNumber].cy - 1].size;
-        editorRowAppendString(&E.editors[E.screenNumber].row[E.editors[E.screenNumber].cy - 1], row->chars, row->size);
+        editorRowAppendString(&E.editors[E.screenNumber].row[E.editors[E.screenNumber].cy - 1], row->chars, row->size, &E.editors[E.screenNumber].dirty);
         editorDeleteRow(E.editors[E.screenNumber].cy, &E.editors[E.screenNumber]);
         E.editors[E.screenNumber].cy--;
     }
@@ -468,7 +432,7 @@ void editorFind(void){
 }
 
 /** INPUT**/
-char *editorPrompt(char *prompt, void (*callback)(char *, int)){
+char* editorPrompt(char *prompt, void (*callback)(char *, int)){
     size_t bufferSize = 128;
     char *buffer = (char *)malloc(bufferSize);
 
@@ -591,6 +555,8 @@ void editorPreformEditorAction(EditorAction action, const char* input) {
     switch (action) {
         case ACTION_UNKOWN: return;
         case ACTION_IGNORE: return;
+        case ACTION_GET_INPUT:
+            getEditorActionFromKey(EDITOR_COMMAND_MODE, editorPrompt(":", NULL));
         case ACTION_EXECUTE_DIR:
             handleCommand(input);
             break;
@@ -628,7 +594,7 @@ void editorPreformEditorAction(EditorAction action, const char* input) {
             editorQuitTexture();
             break;
         case ACTION_INSERT_NEWLINE:
-            editorInsertNewLine();
+            editorInsertNewLine(&E.editors[E.screenNumber]);
             break;
         case ACTION_MOVE_HOME_KEY:
             E.editors[E.screenNumber].cx = 0;
@@ -738,7 +704,7 @@ void editorProcessKeyPressBackup(void){
         switch(c){
 
             case '\r':
-                editorInsertNewLine();
+                editorInsertNewLine(&E.editors[E.screenNumber]);
                 break;
             // home key sets the x position to the home 
             case HOME_KEY:

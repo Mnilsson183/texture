@@ -162,3 +162,37 @@ void editorInsertChar(int c, struct EditorBuffer* buf){
     editorRowInsertChar(&buf->row[buf->cy], buf->cx, c, &buf->dirty);
     buf->cx++;
 }
+
+void editorRowDeleteChar(EditorRow *row, int at, int* dirty){
+    if (at < 0 || at >= row->size){
+        return;
+    }
+    memmove(&row->chars[at], &row->chars[at + 1], row->size - at);
+    row->size--;
+    editorUpdateRow(row);
+    (*dirty)++;
+}
+
+void editorInsertNewLine(struct EditorBuffer* buf){
+    if(buf->cx == 0){
+        editorInsertRow(buf->cy, "", 0, buf);
+    } else{
+        EditorRow *row = &buf->row[buf->cy];
+        editorInsertRow(buf->cy + 1, &row->chars[buf->cx], row->size - buf->cx, buf);
+        row = &buf->row[buf->cy];
+        row->size = buf->cx;
+        row->chars[row->size] = '\0';
+        editorUpdateRow(row);
+    }
+    buf->cy++;
+    buf->cx = 0;
+}
+
+void editorRowAppendString(EditorRow *row, char *s, size_t length, int* dirty){
+    row->chars = (char *)realloc(row->chars, row->size + length + 1);
+    memcpy(&row->chars[row->size], s, length);
+    row->size += length;
+    row->chars[row->size] = '\0';
+    editorUpdateRow(row);
+    (*dirty)++;
+}

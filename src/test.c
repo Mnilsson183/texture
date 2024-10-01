@@ -10,9 +10,9 @@ void vectorTest(void) {
     int i = 0;
     int j = 1;
     int f = 99;
-    vector_add(vec, &i);
-    vector_add(vec, &j);
-    vector_add(vec, &f);
+    vector_push(vec, &i);
+    vector_push(vec, &j);
+    vector_push(vec, &f);
     assertEquals(*(int*)vector_get(vec, 0), i, "Getting element from vector");
     assertEquals(*(int*)vector_get(vec, 1), j, "Getting element from vector");
     assertEquals(*(int*)vector_get(vec, 2), f, "Getting element from vector");
