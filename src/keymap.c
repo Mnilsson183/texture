@@ -3,21 +3,13 @@
 #include "../include/keymap.h"
 #include "../include/editor.h"
 #include "../include/vector.h"
-
+#include "../include/utils.h"
 
 typedef struct {
     const char* key;
     EditorAction action;
     const char* desc;
 } Map;
-
-Map* moveMapToHeap(Map map) {
-    Map* newMap = malloc(sizeof(Map));
-    newMap->action = map.action;
-    newMap->desc = map.desc;
-    newMap->key = map.key;
-    return newMap;
-}
 
 Map normal_keymap[] = {
     {":", ACTION_GET_INPUT, "Get for input"},
@@ -58,7 +50,8 @@ Map insert_keymap[] = {
 #define INSERT_LENGTH sizeof(insert_keymap) / sizeof(insert_keymap[0])
 
 Map command_keymap[] = {
-    {"q", ACTION_EDITOR_WINDOWS_EXIT, "Exit current window"}
+    {"q", ACTION_EDITOR_WINDOWS_EXIT, "Exit current window"},
+    {"w", ACTION_FS_SAVE_FILE, "Save the current buffer"}
 };
 #define COMMAND_LENGTH sizeof(command_keymap) / sizeof(command_keymap[0])
 
@@ -76,30 +69,18 @@ void initKeymaps() {
     command_mode_keymap_vector = vector_init(malloc(sizeof(struct vector)), sizeof(Map));
 
     for (int i = 0; i < NORMAL_LENGTH; i++) {
-        vector_push(normal_mode_keymap_vector, moveMapToHeap(normal_keymap[i]));
+        vector_push(normal_mode_keymap_vector, &normal_keymap[i]);
     }
     for (int i = 0; i < INSERT_LENGTH; i++) {
-        vector_push(insert_mode_keymap_vector, moveMapToHeap(insert_keymap[i]));
+        vector_push(insert_mode_keymap_vector, &insert_keymap[i]);
     }
     for (int i = 0; i < VISUAL_LENGTH; i++) {
-        vector_push(visual_mode_keymap_vector, moveMapToHeap(visual_keymap[i]));
+        vector_push(visual_mode_keymap_vector, &visual_keymap[i]);
     }
     for (int i = 0; i < COMMAND_LENGTH; i++) {
-        vector_push(command_mode_keymap_vector, moveMapToHeap(command_keymap[i]));
+        vector_push(command_mode_keymap_vector, &command_keymap[i]);
     }
 }
-
-EditorAction keyMapLookup(const char* key) {
-    for (int i = 0; i < currKeymap_vector->num_elements; i++) {
-        Map* map = (Map *)vector_get(currKeymap_vector, i);
-        if (strcmp(key, map->key) == 0) return map->action;
-    }
-    for (int i = 0; i < currKeymap_vector->num_elements; i++) {
-        Map* map = (Map *)vector_get(currKeymap_vector, i);
-    }
-    return ACTION_UNKOWN;
-}
-
 
 EditorAction getEditorActionFromKey(EditorMode mode, const char* key) {
     switch (mode) {
@@ -113,8 +94,15 @@ EditorAction getEditorActionFromKey(EditorMode mode, const char* key) {
             currKeymap_vector = visual_mode_keymap_vector;
             break;
         case EDITOR_COMMAND_MODE:
-            currKeymap_vector = NULL;
+            currKeymap_vector = command_mode_keymap_vector;
             break;
     }
-    return keyMapLookup(key);
+
+    for (int i = 0; i < currKeymap_vector->num_elements; i++) {
+        Map* map = (Map *)vector_get(currKeymap_vector, i);
+        if (strcmp(key, map->key) == 0) return map->action;
+        if (memcmp(key, map->key, min(strlen(key), strlen(map->key))) == 0) return map->action;
+    }
+
+    return ACTION_UNKOWN;
 }

@@ -1,4 +1,3 @@
-
 #define _DEFAULT_SOURCE
 #define _BSD_SOURCE
 #define _GNU_source
@@ -26,6 +25,7 @@ void terminate(const char *s){
     perror(s);
     exit(1);
 }
+
 int getCursorPosition(int* rows, int* columns){
     // man read to get the cursor position
     char buf[32];
@@ -53,7 +53,6 @@ int getCursorPosition(int* rows, int* columns){
         return -1;
     }
     return 0;
-    
 }
 
 int editorReadKey(void) {
@@ -78,7 +77,7 @@ int editorReadKey(void) {
             return '\x1b';
         }
 
-        // first char being the special char
+        // if first char being the special char
         if(seq[0] == '['){
             // check that that seq falls into the bounds of our answer
             if (seq[1] >= '0' && seq[1] <= '9'){
@@ -144,4 +143,14 @@ int getWindowSize(int* rows, int* columns){
 /* Syntax highlighting */
 int isSeparator(int c){
     return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[];", c);
+}
+
+int min(int i1, int i2) {
+    if (i1 < i2) return i1;
+    else return i2;
+}
+
+int max(int i1, int i2) {
+    if (i1 > i2) return i1;
+    else return i2;
 }

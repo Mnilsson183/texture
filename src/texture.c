@@ -25,7 +25,6 @@
 #include "../include/editor.h"
 
 /** DEFINES**/
-
 #define true 1
 #define false 0
 
@@ -552,11 +551,13 @@ void editorAppendActionBuffer(char c) {
 
 
 void editorPreformEditorAction(EditorAction action, const char* input) {
+    char* s;
     switch (action) {
         case ACTION_UNKOWN: return;
         case ACTION_IGNORE: return;
         case ACTION_GET_INPUT:
-            getEditorActionFromKey(EDITOR_COMMAND_MODE, editorPrompt(":", NULL));
+            s = editorPrompt(":", NULL);
+            getEditorActionFromKey(EDITOR_COMMAND_MODE, s);
         case ACTION_EXECUTE_DIR:
             handleCommand(input);
             break;

@@ -1,5 +1,3 @@
-# CMakeLists.txt in project_root/src/
-
 # Add library for module1
 add_library(Dictionary STATIC dict.c)
 add_library(Utils STATIC utils.c)
