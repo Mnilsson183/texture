@@ -21,7 +21,7 @@ void disableRawMode(){
     }
 }
 
-void enableRawMode(struct EditorScreens E){
+void enableRawMode(struct Editor E){
     // function to enter raw mode of the terminal
 
     // tcgetattr reads the terminal attributes

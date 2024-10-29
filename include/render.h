@@ -1,6 +1,6 @@
 #include "../include/editor.h"
 
-void enableRawMode(struct EditorScreens E);
+void enableRawMode(struct Editor E);
 
 struct AppendBuffer{
     // buffer to minimize write to terminal functions

@@ -1,5 +1,6 @@
 #include <termios.h>
 #include <time.h>
+#include "../include/logger.h"
 
 #ifndef EDITOR_H
 #define EDITOR_H
@@ -73,10 +74,11 @@ struct EditorBuffer{
     time_t statusMessage_time;
 };
 
-struct EditorScreens{
+struct Editor {
     struct EditorBuffer editors[SCREEN_MAX+1];
     struct EditorBuffer* currBuffer;
     int screenNumber;
+    struct Logger* logger;
     // default terminal settings
     struct termios orig_termios;
 };

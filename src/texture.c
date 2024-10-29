@@ -23,6 +23,7 @@
 #include "../include/render.h"
 #include "../include/keymap.h"
 #include "../include/editor.h"
+#include "../include/logger.h"
 
 /** DEFINES**/
 #define true 1
@@ -49,7 +50,7 @@ void initBuffer(int screen);
 
 // global var that is the default settings of terminal
 
-struct EditorScreens E;
+struct Editor E;
 
 /* filetypes */
 char* C_HL_extensions[] = {".c", ".h", ".cpp"};
@@ -69,7 +70,6 @@ struct EditorSyntax HighLightDataBase[] = {
     {"c",
     C_HL_extensions,
     C_HL_keywords,
-    // temp change fix later # -> //
     "//", "/*", "*/",
     HL_HIGHLIGHT_NUMBERS | HL_HIGHLIGHT_STRINGS},
     
@@ -552,6 +552,7 @@ void editorAppendActionBuffer(char c) {
 
 void editorPreformEditorAction(EditorAction action, const char* input) {
     char* s;
+    //fprintf(E.logger->file, "Action: %s\n", input);
     switch (action) {
         case ACTION_UNKOWN: return;
         case ACTION_IGNORE: return;
@@ -616,20 +617,32 @@ void editorPreformEditorAction(EditorAction action, const char* input) {
         case ACTION_WAIT:
         case ACTION_DISCARD:
             break;
+
+        // not done yet
+        case ACTION_REMOVE_LINE:
+            break;
     }
 }
 
 void editorProcessKeyPress(void) {
     int c = editorReadKey();
     editorAppendActionBuffer(c);
-    editorSetStatusMessage("%s", E.editors[E.screenNumber].actionBuffer);
-    EditorAction action = getEditorActionFromKey(E.editors[E.screenNumber].mode, E.editors[E.screenNumber].actionBuffer);
-    if (E.editors[E.screenNumber].mode == EDITOR_INSERT_MODE && action == ACTION_UNKOWN) {
+
+    const char* actionBuf = E.editors[E.screenNumber].actionBuffer;
+    editorSetStatusMessage("%s", actionBuf);
+
+    EditorMode mode = E.editors[E.screenNumber].mode;
+
+    EditorAction action = getEditorActionFromKey(mode, actionBuf);
+
+    if (mode == EDITOR_INSERT_MODE && action == ACTION_UNKOWN) {
         editorInsertChar(c, &E.editors[E.screenNumber]);
-    } else {
-        editorPreformEditorAction(action, NULL);
+        //fprintf(E.logger->file, "Unknown action %d", c);
+    } else if(action != ACTION_UNKOWN){
+        editorPreformEditorAction(action, actionBuf);
     }
     E.editors[E.screenNumber].actionBuffer[0] = '\0';
+    editorSetStatusMessage("%s", actionBuf);
 }
 
 void editorProcessKeyPressBackup(void){
@@ -962,7 +975,7 @@ void editorSetStatusMessage(const char *fmt, ...){
 }
 
 /** INIT **/
-void initBuffer(int screen){
+void initBuffer(int screen) {
     // cursor positions
     E.editors[screen].cx = 0;
     E.editors[screen].cy = 0;
@@ -985,8 +998,9 @@ void initBuffer(int screen){
     E.editors[screen].screenRows = E.editors[screen].screenRows - 2;
 }
 
-void initEditor(void){
-    for(int i = SCREEN_MIN; i <= SCREEN_MAX; i++){
+void initEditor(void) {
+    E.logger = initLogger("out.log");
+    for (int i = SCREEN_MIN; i <= SCREEN_MAX; i++){
         initBuffer(i);
     }
     E.screenNumber = SCREEN_MIN;

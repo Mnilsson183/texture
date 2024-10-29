@@ -2,16 +2,9 @@
 #include <stdlib.h>
 #include "../include/logger.h"
 
-FILE* logFile;
-
-FILE* initLogFile(const char* filename) {
-    if (filename == NULL) {
-        return fopen("log.txt", "a");
-    } else {
-        return fopen(filename, "a");
-    }
-}
-
-void logger_add(const char* log) {
-    fputs(log, logFile);
+struct Logger* initLogger(const char* filename) {
+    struct Logger* logger = malloc(sizeof(struct Logger));
+    if (logger == NULL) return NULL;
+    logger->file = fopen(filename, "+a");
+    return logger;
 }

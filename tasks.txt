@@ -1,5 +1,4 @@
 replace all char* with a struct alternative that supports alternate encodings
-
-line 794
+replace the keymaps with a union type im getting intersects with the shift combos like big H and big d
 
 

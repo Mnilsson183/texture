@@ -3,7 +3,10 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
-FILE* initLogFile(const char* filename);
-void logger_add(const char* log);
+struct Logger {
+	FILE* file;
+};
+
+struct Logger* initLogger(const char* filename);
 
 #endif
