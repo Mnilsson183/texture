@@ -8,5 +8,5 @@ line numbers + control of them relative vs absolute
 version control integration
 firgure out and add an add-ons system
 fix the exiting bug
-create logging system and warning reporter
+- create logging system and warning reporter
 further split the project to allow for modularity for things such as ncurses

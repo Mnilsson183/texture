@@ -11,6 +11,14 @@ typedef struct {
     const char* desc;
 } Map;
 
+typedef struct {
+    int type;
+    union {
+        EditorAction action;
+        char seq[20];
+    } value;
+} KeyAction;
+
 Map normal_keymap[] = {
     {":", ACTION_GET_INPUT, "Get for input"},
     {"i", ACTION_ENTER_INSERT_MODE, "Enter insert mode"},
@@ -69,16 +77,16 @@ void initKeymaps() {
     command_mode_keymap_vector = vector_init(malloc(sizeof(struct vector)), sizeof(Map));
 
     for (int i = 0; i < NORMAL_LENGTH; i++) {
-        vector_push(normal_mode_keymap_vector, &normal_keymap[i]);
+        normal_mode_keymap_vector->push(normal_mode_keymap_vector, &normal_keymap[i]);
     }
     for (int i = 0; i < INSERT_LENGTH; i++) {
-        vector_push(insert_mode_keymap_vector, &insert_keymap[i]);
+        insert_mode_keymap_vector->push(insert_mode_keymap_vector, &insert_keymap[i]);
     }
     for (int i = 0; i < VISUAL_LENGTH; i++) {
-        vector_push(visual_mode_keymap_vector, &visual_keymap[i]);
+        visual_mode_keymap_vector->push(visual_mode_keymap_vector, &visual_keymap[i]);
     }
     for (int i = 0; i < COMMAND_LENGTH; i++) {
-        vector_push(command_mode_keymap_vector, &command_keymap[i]);
+        command_mode_keymap_vector->push(command_mode_keymap_vector, &command_keymap[i]);
     }
 }
 
@@ -99,7 +107,7 @@ EditorAction getEditorActionFromKey(EditorMode mode, const char* key) {
     }
 
     for (int i = 0; i < currKeymap_vector->num_elements; i++) {
-        Map* map = (Map *)vector_get(currKeymap_vector, i);
+        Map* map = (Map *)currKeymap_vector->get(currKeymap_vector, i);
         if (strcmp(key, map->key) == 0) return map->action;
         if (memcmp(key, map->key, min(strlen(key), strlen(map->key))) == 0) return map->action;
     }

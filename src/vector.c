@@ -5,6 +5,10 @@
 
 #define VECTOR_GROWTH_FACTOR 2
 
+void vector_push(struct vector* self, void* data);
+void* vector_pop(struct vector* self);
+void* vector_get(struct vector* self, int index);
+
 struct vector* vector_init_size(struct vector* self, int element_size, int initSize) {
     if (initSize <= 0) return NULL;
     if (element_size <= 0) return  NULL;
@@ -17,6 +21,9 @@ struct vector* vector_init_size(struct vector* self, int element_size, int initS
     }
     self->num_elements = 0;
     self->status = OK;
+    self->push = &vector_push;
+    self->pop = &vector_pop;
+    self->get = &vector_get;
     return self;
 }
 

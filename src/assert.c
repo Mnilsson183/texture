@@ -36,22 +36,22 @@ void printTestingSegment(const char* seg) {
 
 void allTestsPassing(const char* msg) {
     if (msg == NULL) {
-        fprintf(stdout, COLOR_GREEN "All Test passed: No message provided.\n" COLOR_RESET);
+        fprintf(stdout, COLOR_GREEN "-------- All Test passed: No message provided.\n" COLOR_RESET);
     } else {
-        fprintf(stdout, COLOR_GREEN "All Test passed: %s\n" COLOR_RESET, msg);
+        fprintf(stdout, COLOR_GREEN "-------- All Test passed: %s\n" COLOR_RESET, msg);
     }
 }
 
 void valueComparePtr(const void * p1, const void* p2) {
-    printf("    - %d  vs  %d", p1, p2);
+    printf("    - %d  vs  %d\n", p1, p2);
 }
 
 void valueCompareValue(const int i1, const int i2) {
-    printf("    - %d  vs  %d", i1, i2);
+    printf("    - %d  vs  %d\n", i1, i2);
 }
 
 void valueCompareString(const char* c_str1, const char* c_str2) {
-    printf("    - |%s|  vs  |%s|", c_str1, c_str2);
+    printf("    - |%s|  vs  |%s|\n", c_str1, c_str2);
 }
 
 void valueCompareNString(const char* c_str1, const char* c_str2, const int l1, const int l2) {
@@ -91,6 +91,16 @@ int assertNotEquals(int one, int two, const char* msg) {
 
 int assertNULL(void* one, const char* msg) {
     if (one != NULL) {
+        failedTest(msg);
+        return 1;
+    } else {
+        okTest(msg);
+        return 0;
+    }
+}
+
+int assertNotNULL(void* one, const char* msg) {
+    if (one == NULL) {
         failedTest(msg);
         return 1;
     } else {
@@ -150,6 +160,28 @@ int assertPtrEquals(const void* p1, const void* p2, const char* msg) {
     } else {
         failedTest(msg);
         valueComparePtr(p1, p2);
+        return 1;
+    }
+}
+
+int assertTrue(int boolean, const char *msg) {
+    if (boolean) {
+        okTest(msg);
+        return 0;
+    } else {
+        failedTest(msg);
+        valueCompareValue(boolean, 1);
+        return 1;
+    }
+}
+
+int assertFalse(int boolean, const char *msg) {
+    if (!boolean) {
+        okTest(msg);
+        return 0;
+    } else {
+        failedTest(msg);
+        valueCompareValue(boolean, 0);
         return 1;
     }
 }
