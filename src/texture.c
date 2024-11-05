@@ -24,29 +24,25 @@
 #include "../include/keymap.h"
 #include "../include/editor.h"
 #include "../include/logger.h"
+#include "../include/highlight.h"
+
+#define lambda(return_type, function_body) \
+({ \
+      return_type __fn__ function_body \
+          __fn__; \
+})
+// int (*max)(int, int) = lambda (int, (int x, int y) { return x > y ? x : y; });
+// max(4, 5); // Example
 
 /** DEFINES**/
 #define true 1
 #define false 0
 
 #define APPEND_INIT {NULL, 0}
-
-enum editorHighlight{
-    HL_NORMAL = 0,
-    HL_COMMENT,
-    HL_MULTIPLE_LINE_COMMENT,
-    HL_KEYWORD1,
-    HL_KEYWORD2,
-    HL_STRING,
-    HL_NUMBER,
-    HL_MATCH
-};
 /* prototypes */
 void editorSetStatusMessage(const char *fmt, ...);
 void editorRefreshScreen(void);
 char *editorPrompt(char *prompt, void (*callback)(char *, int));
-void initBuffer(int screen);
-
 
 // global var that is the default settings of terminal
 
@@ -203,20 +199,6 @@ void editorUpdateSyntax(EditorRow *row){
     }
 }
 
-int editorSyntaxToColor(int highLight){
-    switch (highLight)
-    {
-        case HL_COMMENT:
-        case HL_MULTIPLE_LINE_COMMENT: return 36;
-        case HL_KEYWORD1: return 33;
-        case HL_KEYWORD2: return 32;
-        case HL_NUMBER: return 31;
-        case HL_STRING: return 35;
-        case HL_MATCH: return 34;
-        default: return 37;
-    }
-}
-
 void editorSelectSyntaxHighlight(void){
     E.editors[E.screenNumber].syntax = NULL;
     if(E.editors[E.screenNumber].fileName == NULL){
@@ -296,7 +278,7 @@ void editorOpen(const char* filename){
         editorSetStatusMessage("WARNING!! file has unsaved changes. Please save changes of clear editor");
         return;
     }
-    initBuffer(E.screenNumber);
+    initBuffer(&E, E.screenNumber);
 
     E.editors[E.screenNumber].fileName = (char* )filename;
 
@@ -552,7 +534,7 @@ void editorAppendActionBuffer(char c) {
 
 void editorPreformEditorAction(EditorAction action, const char* input) {
     char* s;
-    //fprintf(E.logger->file, "Action: %s\n", input);
+    E.logger->add(E.logger, "%s", input);
     switch (action) {
         case ACTION_UNKOWN: return;
         case ACTION_IGNORE: return;
@@ -590,7 +572,7 @@ void editorPreformEditorAction(EditorAction action, const char* input) {
             editorSwitchScreen(1);
             break;
         case ACTION_EDITOR_WINDOWS_EXIT:
-            initBuffer(E.screenNumber);
+            initBuffer(&E, E.screenNumber);
             break;
         case ACTION_EXIT_EDITOR:
             editorQuitTexture();
@@ -680,7 +662,7 @@ void editorProcessKeyPressBackup(void){
                     quit_times--;
                     return;
                 }
-                initBuffer(E.screenNumber);
+                initBuffer(&E, E.screenNumber);
                 break;
             // exit all
             case CTRL_KEY('q'):
@@ -807,139 +789,6 @@ void editorScroll(void){
     }
 }
 
-void editorDrawRows(struct AppendBuffer *ab){
-    // draw stuff
-    int row;
-    for(row = 0; row < E.editors[E.screenNumber].screenRows; row++){
-        int fileRow = row + E.editors[E.screenNumber].rowOffset;
-        if (fileRow >= E.editors[E.screenNumber].displayLength){
-                // put welcome message 1/3 down the screen
-                if ((E.editors[E.screenNumber].displayLength == 0) && (row == E.editors[E.screenNumber].screenRows / 3)){
-                    char welcome[80];
-                    int welcomeLength = snprintf(welcome, sizeof(welcome),
-                    "Texture Editor -- Version %s", TEXTURE_VERSION);
-                    // if screen size is too small to fit the welcome message cut it off
-                    if (welcomeLength > E.editors[E.screenNumber].screenColumns){
-                        welcomeLength = E.editors[E.screenNumber].screenColumns;
-                    }
-                    // put the message in the middle of the screen
-                    int padding = (E.editors[E.screenNumber].screenColumns - welcomeLength) / 2;
-                    if (padding){
-                        abAppend(ab, "~", 1);
-                        padding--;
-                    }
-                    while (padding--){
-                        abAppend(ab, " ",  1);
-                    }
-                    abAppend(ab, welcome, welcomeLength);
-                } else{
-                    abAppend(ab, "~", 1);
-                }
-            } else {
-                // else write the val in the column
-                int length = E.editors[E.screenNumber].row[fileRow].renderSize - E.editors[E.screenNumber].columnOffset;
-                if (length < 0){
-                    length = 0;
-                }
-                if (length > E.editors[E.screenNumber].screenColumns){
-                    length = E.editors[E.screenNumber].screenColumns;
-                }
-                char *c = &E.editors[E.screenNumber].row[fileRow].render[E.editors[E.screenNumber].columnOffset];
-                unsigned char *highLight = &E.editors[E.screenNumber].row[fileRow].highLight[E.editors[E.screenNumber].columnOffset];
-                int current_color = -1;
-                int j;
-                for(j = 0; j < length; j++){
-                    if(iscntrl(c[j])){
-                        char sym = (c[j] <= 26) ? '@' + c[j] : '?';
-                        abAppend(ab, "\x1b[7m", 4);
-                        abAppend(ab, &sym, 1);
-                        abAppend(ab, "\x1b[m", 3);
-                        if(current_color != -1){
-                            char buf[16];
-                            int clen = snprintf(buf, sizeof(buf), "\x1b[%dm", current_color);
-                            abAppend(ab, buf, clen);
-                        }
-                    } else if(highLight[j] == HL_NORMAL){
-                        if(current_color != -1){
-                            abAppend(ab, "\x1b[39m", 5);
-                            current_color = -1;
-                        }
-                        abAppend(ab, &c[j], 1);
-                    } else{
-                        int color = editorSyntaxToColor(highLight[j]);
-                        if(color != current_color){
-                            current_color = color;
-                            char buffer[16];
-                        int clen = snprintf(buffer, sizeof(buffer), "\x1b[%dm", color);
-                        abAppend(ab, buffer, clen);
-                        }
-                        abAppend(ab, &c[j], 1);
-                    }
-                }
-                abAppend(ab, "\x1b[39m", 5);
-            }
-            // erase from cursor to end of line
-            abAppend(ab, "\x1b[K", 3);
-            // print to the next line
-            abAppend(ab, "\r\n", 2);
-    }
-}
-
-char* convertModeToString(void){
-    switch (E.editors[E.screenNumber].mode){
-        case EDITOR_NORMAL_MODE: return "normal";
-        case EDITOR_INSERT_MODE: return "insert";
-        case EDITOR_VISUAL_MODE: return "visual";
-        case EDITOR_COMMAND_MODE: return "command";
-        default: return "";
-    }
-}
-
-void editorDrawStatusBar(struct AppendBuffer *ab){
-    switch(E.editors[E.screenNumber].mode){
-        default:
-            abAppend(ab, "\x1b[7m", 4);
-            break;
-    }
-    char status[80], rStatus[80];
-    int length = snprintf(status, sizeof(status), "%.20s - %d lines %s - %s - screen number %d | %s",
-        E.editors[E.screenNumber].fileName ? E.editors[E.screenNumber].fileName : "[No Name]", E.editors[E.screenNumber].displayLength,
-        E.editors[E.screenNumber].dirty ? "(modified)": "",
-        convertModeToString(),
-        E.screenNumber,
-        E.editors[E.screenNumber].infoLine);
-    int rlen = snprintf(rStatus, sizeof(rStatus),"%s | %d/%d",
-        E.editors[E.screenNumber].syntax ? E.editors[E.screenNumber].syntax->filetype : "No Filetype",
-        E.editors[E.screenNumber].cy + 1, 
-        E.editors[E.screenNumber].displayLength);
-    if(length > E.editors[E.screenNumber].screenColumns){
-        length = E.editors[E.screenNumber].screenColumns;
-    }
-    abAppend(ab , status, length);
-    while(length < E.editors[E.screenNumber].screenColumns){
-        if (E.editors[E.screenNumber].screenColumns - length == rlen){
-            abAppend(ab, rStatus, rlen);
-            break;
-        } else{
-            abAppend(ab, " ", 1);
-            length++;
-        }
-    }
-    abAppend(ab, "\x1b[m", 3);
-    abAppend(ab, "\r\n", 2);
-}
-
-void editorDrawMessageBar(struct AppendBuffer *ab){
-    abAppend(ab, "\x1b[K", 3);
-    int messageLength = strlen(E.editors[E.screenNumber].statusMessage);
-    if (messageLength > E.editors[E.screenNumber].screenColumns){
-        messageLength = E.editors[E.screenNumber].screenColumns;
-    }
-    if (messageLength && time(NULL) - E.editors[E.screenNumber].statusMessage_time < 5){
-        abAppend(ab, E.editors[E.screenNumber].statusMessage, messageLength);
-    }
-}
-
 void editorRefreshScreen(void){
     editorScroll();
 
@@ -950,9 +799,9 @@ void editorRefreshScreen(void){
     // move the cursor to the 1,1 position in the terminal
     abAppend(&ab, "\x1b[H", 3);
 
-    editorDrawRows(&ab);
-    editorDrawStatusBar(&ab);
-    editorDrawMessageBar(&ab);
+    editorDrawRows(&E, &ab);
+    editorDrawStatusBar(&E, &ab);
+    editorDrawMessageBar(&E, &ab);
 
     char buf[32];
     snprintf(buf, sizeof(buf), "\x1b[%d;%dH",   (E.editors[E.screenNumber].cy - E.editors[E.screenNumber].rowOffset) + 1, 
@@ -975,44 +824,13 @@ void editorSetStatusMessage(const char *fmt, ...){
 }
 
 /** INIT **/
-void initBuffer(int screen) {
-    // cursor positions
-    E.editors[screen].cx = 0;
-    E.editors[screen].cy = 0;
-    E.editors[screen].rx = 0;
-    E.editors[screen].mode = EDITOR_NORMAL_MODE;
-    E.editors[screen].rowOffset = 0;
-    E.editors[screen].columnOffset = 0;
-    E.editors[screen].displayLength = 0;
-    E.editors[screen].dirty = 0;
-    E.editors[screen].row = NULL;
-    E.editors[screen].fileName = NULL;
-    E.editors[screen].statusMessage[0] = '\0';
-    E.editors[screen].actionBuffer[0] = '\0';
-    E.editors[screen].statusMessage_time = 0;
-    E.editors[screen].syntax = NULL;
-
-    if (getWindowSize(&E.editors[screen].screenRows, &E.editors[screen].screenColumns) == -1){
-        terminate("getWindowSize");
-    }
-    E.editors[screen].screenRows = E.editors[screen].screenRows - 2;
-}
-
-void initEditor(void) {
-    E.logger = initLogger("out.log");
-    for (int i = SCREEN_MIN; i <= SCREEN_MAX; i++){
-        initBuffer(i);
-    }
-    E.screenNumber = SCREEN_MIN;
-}
-
 void initPlugins(void) {
     initKeymaps();
 }
 
 int main(int argc, char* argv[]){
     enableRawMode(E);
-    initEditor();
+    initEditor(&E);
     // check the passed number of args
     if (argc >= 2){
         editorOpen(argv[1]);

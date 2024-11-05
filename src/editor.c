@@ -1,8 +1,8 @@
-
 #include <string.h>
 #include <stdlib.h>
 #include "../include/editor.h"
 #include "../include/highlight.h"
+#include "../include/utils.h"
 
 int editorRowCxToRx(EditorRow *row, int cx){
     int rx = 0;
@@ -195,4 +195,45 @@ void editorRowAppendString(EditorRow *row, char *s, size_t length, int* dirty){
     row->chars[row->size] = '\0';
     editorUpdateRow(row);
     (*dirty)++;
+}
+
+void initBuffer(struct Editor* E, int screen) {
+    // cursor positions
+    E->editors[screen].cx = 0;
+    E->editors[screen].cy = 0;
+    E->editors[screen].rx = 0;
+    E->editors[screen].mode = EDITOR_NORMAL_MODE;
+    E->editors[screen].rowOffset = 0;
+    E->editors[screen].columnOffset = 0;
+    E->editors[screen].displayLength = 0;
+    E->editors[screen].dirty = 0;
+    E->editors[screen].row = NULL;
+    E->editors[screen].fileName = NULL;
+    E->editors[screen].statusMessage[0] = '\0';
+    E->editors[screen].actionBuffer[0] = '\0';
+    E->editors[screen].statusMessage_time = 0;
+    E->editors[screen].syntax = NULL;
+
+    if (getWindowSize(&E->editors[screen].screenRows, &E->editors[screen].screenColumns) == -1){
+        terminate("getWindowSize");
+    }
+    E->editors[screen].screenRows = E->editors[screen].screenRows - 2;
+}
+
+void initEditor(struct Editor* E) {
+    E->logger = initLogger("out.log");
+    for (int i = SCREEN_MIN; i <= SCREEN_MAX; i++){
+        initBuffer(E, i);
+    }
+    E->screenNumber = SCREEN_MIN;
+}
+
+char* convertModeToString(struct Editor* E){
+    switch (E->editors[E->screenNumber].mode){
+        case EDITOR_NORMAL_MODE: return "normal";
+        case EDITOR_INSERT_MODE: return "insert";
+        case EDITOR_VISUAL_MODE: return "visual";
+        case EDITOR_COMMAND_MODE: return "command";
+        default: return "";
+    }
 }

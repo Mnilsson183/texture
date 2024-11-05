@@ -95,5 +95,8 @@ void editorInsertChar(int c, struct EditorBuffer* buf);
 void editorRowDeleteChar(EditorRow *row, int at, int* dirty);
 void editorInsertNewLine(struct EditorBuffer* buf);
 void editorRowAppendString(EditorRow *row, char *s, size_t length, int* dirty);
+void initBuffer(struct Editor* E, int screen);
+void initEditor(struct Editor* E);
+char* convertModeToString(struct Editor* E);
 
 #endif
