@@ -198,3 +198,29 @@ void editorDrawStatusBar(struct Editor* E, struct AppendBuffer *ab){
     abAppend(ab, "\x1b[m", 3);
     abAppend(ab, "\r\n", 2);
 }
+
+void editorRefreshScreen(struct Editor* E){
+    editorScroll(E);
+
+    struct AppendBuffer ab = APPEND_INIT;
+
+    // hide the cursor
+    abAppend(&ab, "\x1b[?25l", 6);
+    // move the cursor to the 1,1 position in the terminal
+    abAppend(&ab, "\x1b[H", 3);
+
+    editorDrawRows(E, &ab);
+    editorDrawStatusBar(E, &ab);
+    editorDrawMessageBar(E, &ab);
+
+    char buf[32];
+    snprintf(buf, sizeof(buf), "\x1b[%d;%dH",   (E->editors[E->screenNumber].cy - E->editors[E->screenNumber].rowOffset) + 1, 
+                                                (E->editors[E->screenNumber].rx - E->editors[E->screenNumber].columnOffset) + 1);
+    abAppend(&ab, buf, strlen(buf));
+
+    // show cursor again
+    abAppend(&ab, "\x1b[?25h", 6);
+
+    write(STDOUT_FILENO, ab.b, ab.len);
+    abFree(&ab);
+}

@@ -38,10 +38,8 @@
 #define true 1
 #define false 0
 
-#define APPEND_INIT {NULL, 0}
 /* prototypes */
 void editorSetStatusMessage(const char *fmt, ...);
-void editorRefreshScreen(void);
 char *editorPrompt(char *prompt, void (*callback)(char *, int));
 
 // global var that is the default settings of terminal
@@ -252,7 +250,6 @@ void editorDeleteChar(void){
 
 
 /* file i/o */
-
 char* editorRowsToString(int* bufferlength){
     int totalLength = 0;
     int j;
@@ -422,7 +419,7 @@ char* editorPrompt(char *prompt, void (*callback)(char *, int)){
 
     while (true){
         editorSetStatusMessage(prompt, buffer);
-        editorRefreshScreen();
+        editorRefreshScreen(&E);
 
         int c = editorReadKey();
         if(c == DEL_KEY || c == CTRL_KEY('h') || c == BACKSPACE){
@@ -769,52 +766,6 @@ void editorProcessKeyPressBackup(void){
 }
 
 /** OUTPUT **/
-void editorScroll(void){
-    // moving the screen around the file
-    if (E.editors[E.screenNumber].cy < E.editors[E.screenNumber].displayLength){
-        E.editors[E.screenNumber].rx = editorRowCxToRx(&E.editors[E.screenNumber].row[E.editors[E.screenNumber].cy], E.editors[E.screenNumber].cx);
-    }
-
-    if (E.editors[E.screenNumber].cy < E.editors[E.screenNumber].rowOffset){
-        E.editors[E.screenNumber].rowOffset = E.editors[E.screenNumber].cy;
-    }
-    if (E.editors[E.screenNumber].cy >= E.editors[E.screenNumber].rowOffset + E.editors[E.screenNumber].screenRows){
-        E.editors[E.screenNumber].rowOffset = E.editors[E.screenNumber].cy - E.editors[E.screenNumber].screenRows + 1;
-    }
-    if (E.editors[E.screenNumber].rx < E.editors[E.screenNumber].columnOffset){
-        E.editors[E.screenNumber].columnOffset = E.editors[E.screenNumber].rx;
-    }
-    if (E.editors[E.screenNumber].rx >= E.editors[E.screenNumber].columnOffset + E.editors[E.screenNumber].screenColumns){
-        E.editors[E.screenNumber].columnOffset = E.editors[E.screenNumber].rx - E.editors[E.screenNumber].screenColumns + 1;
-    }
-}
-
-void editorRefreshScreen(void){
-    editorScroll();
-
-    struct AppendBuffer ab = APPEND_INIT;
-
-    // hide the cursor
-    abAppend(&ab, "\x1b[?25l", 6);
-    // move the cursor to the 1,1 position in the terminal
-    abAppend(&ab, "\x1b[H", 3);
-
-    editorDrawRows(&E, &ab);
-    editorDrawStatusBar(&E, &ab);
-    editorDrawMessageBar(&E, &ab);
-
-    char buf[32];
-    snprintf(buf, sizeof(buf), "\x1b[%d;%dH",   (E.editors[E.screenNumber].cy - E.editors[E.screenNumber].rowOffset) + 1, 
-                                                (E.editors[E.screenNumber].rx - E.editors[E.screenNumber].columnOffset) + 1);
-    abAppend(&ab, buf, strlen(buf));
-
-    // show cursor again
-    abAppend(&ab, "\x1b[?25h", 6);
-
-    write(STDOUT_FILENO, ab.b, ab.len);
-    abFree(&ab);
-}
-
 void editorSetStatusMessage(const char *fmt, ...){
     va_list ap;
     va_start (ap, fmt);
@@ -840,7 +791,7 @@ int main(int argc, char* argv[]){
     editorSetStatusMessage("HELP: Ctrl-q to quit | Ctrl-s to save | Ctrl-f find | 'O' open file");
     
     while (true){
-        editorRefreshScreen();
+        editorRefreshScreen(&E);
         editorProcessKeyPress();
     }
     return 0;

@@ -237,3 +237,24 @@ char* convertModeToString(struct Editor* E){
         default: return "";
     }
 }
+
+void editorScroll(struct Editor* E){
+    // moving the screen around the file
+    int screenNumber = E->screenNumber;
+    if (E->editors[screenNumber].cy < E->editors[screenNumber].displayLength){
+        E->editors[screenNumber].rx = editorRowCxToRx(&E->editors[screenNumber].row[E->editors[screenNumber].cy], E->editors[screenNumber].cx);
+    }
+
+    if (E->editors[screenNumber].cy < E->editors[screenNumber].rowOffset){
+        E->editors[screenNumber].rowOffset = E->editors[screenNumber].cy;
+    }
+    if (E->editors[screenNumber].cy >= E->editors[screenNumber].rowOffset + E->editors[screenNumber].screenRows){
+        E->editors[screenNumber].rowOffset = E->editors[screenNumber].cy - E->editors[screenNumber].screenRows + 1;
+    }
+    if (E->editors[screenNumber].rx < E->editors[screenNumber].columnOffset){
+        E->editors[screenNumber].columnOffset = E->editors[screenNumber].rx;
+    }
+    if (E->editors[screenNumber].rx >= E->editors[screenNumber].columnOffset + E->editors[screenNumber].screenColumns){
+        E->editors[screenNumber].columnOffset = E->editors[screenNumber].rx - E->editors[screenNumber].screenColumns + 1;
+    }
+}

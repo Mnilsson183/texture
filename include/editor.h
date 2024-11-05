@@ -98,5 +98,6 @@ void editorRowAppendString(EditorRow *row, char *s, size_t length, int* dirty);
 void initBuffer(struct Editor* E, int screen);
 void initEditor(struct Editor* E);
 char* convertModeToString(struct Editor* E);
+void editorScroll(struct Editor* E);
 
 #endif
