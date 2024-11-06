@@ -1,6 +1,6 @@
 #include <string.h>
 #include <stdlib.h>
-#include "../include/editor.h"
+#include <stdio.h>
 #include "../include/highlight.h"
 #include "../include/utils.h"
 
@@ -31,7 +31,7 @@ int editorRowRxToCx(EditorRow *row, int rx){
     return cx;
 }
 
-void editorUpdateRow(EditorRow *row){
+void editorUpdateRow(struct Editor* E, EditorRow *row){
     int tabs = 0;
     int j;
     for (j = 0; j < row->size; j++){
@@ -56,7 +56,7 @@ void editorUpdateRow(EditorRow *row){
     row->render[tempLength] = '\0';
     row->renderSize = tempLength;
 
-    editorUpdateSyntax(row);
+    editorUpdateSyntax(E, row);
 }
 
 void editorFreeRow(EditorRow *row){
@@ -65,7 +65,7 @@ void editorFreeRow(EditorRow *row){
     free(row->highLight);
 }
 
-void editorInsertRow(int at, char* s, size_t length, struct EditorBuffer* buf){
+void editorInsertRow(struct Editor* E, int at, char* s, size_t length, struct EditorBuffer* buf){
     if(at < 0 || at > buf->displayLength){
         return;
     }
@@ -83,7 +83,7 @@ void editorInsertRow(int at, char* s, size_t length, struct EditorBuffer* buf){
     buf->row[at].renderSize = 0;
     buf->row[at].render = NULL;
     buf->row[at].highLight = NULL;
-    editorUpdateRow(&buf->row[at]);
+    editorUpdateRow(E, &buf->row[at]);
 
     buf->displayLength++;
     buf->dirty++;
@@ -133,7 +133,7 @@ void editorMoveCursor(int key, struct EditorBuffer* buf){
     }
 }
 
-void editorDeleteRow(int at, struct EditorBuffer* buf){
+void editorDeleteRow(struct Editor* E, int at, struct EditorBuffer* buf){
     if(at < 0 || at >= buf->displayLength){
         return;
     }
@@ -143,7 +143,7 @@ void editorDeleteRow(int at, struct EditorBuffer* buf){
     buf->dirty++;
 }
 
-void editorRowInsertChar(EditorRow *row, int at, int c, int* dirty){
+void editorRowInsertChar(struct Editor* E, EditorRow *row, int at, int c, int* dirty){
     if (at < 0 || at > row->size){ 
         at = row->size;
     }
@@ -151,49 +151,49 @@ void editorRowInsertChar(EditorRow *row, int at, int c, int* dirty){
         memmove(&row->chars[at + 1], &row->chars[at], row->size - at + 1);
         row->size++;
         row->chars[at] = c;
-        editorUpdateRow(row);
+        editorUpdateRow(E, row);
         (*dirty)++;
 }
 
-void editorInsertChar(int c, struct EditorBuffer* buf){
+void editorInsertChar(struct Editor* E, int c, struct EditorBuffer* buf){
     if (buf->cy == buf->displayLength){
-        editorInsertRow(buf->displayLength, "", 0, buf);
+        editorInsertRow(E, buf->displayLength, "", 0, buf);
     }
-    editorRowInsertChar(&buf->row[buf->cy], buf->cx, c, &buf->dirty);
+    editorRowInsertChar(E, &buf->row[buf->cy], buf->cx, c, &buf->dirty);
     buf->cx++;
 }
 
-void editorRowDeleteChar(EditorRow *row, int at, int* dirty){
+void editorRowDeleteChar(struct Editor* E, EditorRow *row, int at, int* dirty){
     if (at < 0 || at >= row->size){
         return;
     }
     memmove(&row->chars[at], &row->chars[at + 1], row->size - at);
     row->size--;
-    editorUpdateRow(row);
+    editorUpdateRow(E, row);
     (*dirty)++;
 }
 
-void editorInsertNewLine(struct EditorBuffer* buf){
+void editorInsertNewLine(struct Editor* E, struct EditorBuffer* buf){
     if(buf->cx == 0){
-        editorInsertRow(buf->cy, "", 0, buf);
+        editorInsertRow(E, buf->cy, "", 0, buf);
     } else{
         EditorRow *row = &buf->row[buf->cy];
-        editorInsertRow(buf->cy + 1, &row->chars[buf->cx], row->size - buf->cx, buf);
+        editorInsertRow(E, buf->cy + 1, &row->chars[buf->cx], row->size - buf->cx, buf);
         row = &buf->row[buf->cy];
         row->size = buf->cx;
         row->chars[row->size] = '\0';
-        editorUpdateRow(row);
+        editorUpdateRow(E, row);
     }
     buf->cy++;
     buf->cx = 0;
 }
 
-void editorRowAppendString(EditorRow *row, char *s, size_t length, int* dirty){
+void editorRowAppendString(struct Editor* E, EditorRow *row, char *s, size_t length, int* dirty){
     row->chars = (char *)realloc(row->chars, row->size + length + 1);
     memcpy(&row->chars[row->size], s, length);
     row->size += length;
     row->chars[row->size] = '\0';
-    editorUpdateRow(row);
+    editorUpdateRow(E, row);
     (*dirty)++;
 }
 

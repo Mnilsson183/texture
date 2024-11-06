@@ -85,19 +85,20 @@ struct Editor {
 
 int editorRowCxToRx(EditorRow *row, int cx);
 int editorRowRxToCx(EditorRow *row, int rx);
-void editorUpdateRow(EditorRow *row);
+void editorUpdateRow(struct Editor* E, EditorRow *row);
 void editorFreeRow(EditorRow* row);
-void editorInsertRow(int at, char* s, size_t length, struct EditorBuffer* buf);
+void editorInsertRow(struct Editor* E, int at, char* s, size_t length, struct EditorBuffer* buf); // *
 void editorMoveCursor(int key, struct EditorBuffer* buf);
-void editorDeleteRow(int at, struct EditorBuffer* buf);
-void editorRowInsertChar(EditorRow *row, int at, int c, int* dirty);
-void editorInsertChar(int c, struct EditorBuffer* buf);
-void editorRowDeleteChar(EditorRow *row, int at, int* dirty);
-void editorInsertNewLine(struct EditorBuffer* buf);
-void editorRowAppendString(EditorRow *row, char *s, size_t length, int* dirty);
+void editorDeleteRow(struct Editor* E, int at, struct EditorBuffer* buf); // *
+void editorRowInsertChar(struct Editor* E, EditorRow *row, int at, int c, int* dirty);
+void editorInsertChar(struct Editor* E, int c, struct EditorBuffer* buf); // *
+void editorRowDeleteChar(struct Editor* E, EditorRow *row, int at, int* dirty); // *
+void editorInsertNewLine(struct Editor* E, struct EditorBuffer* buf); // **
+void editorRowAppendString(struct Editor* E, EditorRow *row, char *s, size_t length, int* dirty); // *
 void initBuffer(struct Editor* E, int screen);
 void initEditor(struct Editor* E);
 char* convertModeToString(struct Editor* E);
 void editorScroll(struct Editor* E);
 
+void editorSelectSyntaxHighlight(struct Editor* E);
 #endif

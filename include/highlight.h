@@ -19,6 +19,6 @@ enum editorHighlight {
 };
 
 int editorSyntaxToColor(int highLight);
-void editorUpdateSyntax(EditorRow *row);
+void editorUpdateSyntax(struct Editor* E, EditorRow *row);
 
 #endif
