@@ -58,8 +58,9 @@ Map insert_keymap[] = {
 #define INSERT_LENGTH sizeof(insert_keymap) / sizeof(insert_keymap[0])
 
 Map command_keymap[] = {
-    {"q", ACTION_EDITOR_WINDOWS_EXIT, "Exit current window"},
-    {"w", ACTION_FS_SAVE_FILE, "Save the current buffer"}
+    {"e", ACTION_EDITOR_WINDOWS_EXIT, "Exit current window"},
+    {"w", ACTION_FS_SAVE_FILE, "Save the current buffer"},
+    {"q", ACTION_EXIT_EDITOR, "Exit the editor"}
 };
 #define COMMAND_LENGTH sizeof(command_keymap) / sizeof(command_keymap[0])
 

@@ -352,13 +352,15 @@ void editorAppendActionBuffer(char c) {
 
 void editorPreformEditorAction(EditorAction action, const char* input) {
     char* s;
-    E.logger->add(E.logger, "%s", input);
     switch (action) {
         case ACTION_UNKOWN: return;
         case ACTION_IGNORE: return;
         case ACTION_GET_INPUT:
-            s = editorPrompt(":", NULL);
-            getEditorActionFromKey(EDITOR_COMMAND_MODE, s);
+            s = editorPrompt("Command :", NULL);
+            E.logger->add(E.logger, "Prompt value: |%s|", s);
+            EditorAction act = getEditorActionFromKey(EDITOR_COMMAND_MODE, s);
+            E.logger->add(E.logger, "Editor action enum: |%d|", act);
+            editorPreformEditorAction(act, NULL);
         case ACTION_EXECUTE_DIR:
             handleCommand(input);
             break;
@@ -437,7 +439,6 @@ void editorProcessKeyPress(void) {
 
     if (mode == EDITOR_INSERT_MODE && action == ACTION_UNKOWN) {
         editorInsertChar(&E, c, &E.editors[E.screenNumber]);
-        //fprintf(E.logger->file, "Unknown action %d", c);
     } else if(action != ACTION_UNKOWN){
         editorPreformEditorAction(action, actionBuf);
     }
