@@ -41,6 +41,7 @@
 /* prototypes */
 void editorSetStatusMessage(const char *fmt, ...);
 char *editorPrompt(char *prompt, void (*callback)(char *, int));
+void editorAppendActionBuffer(char c);
 
 // global var that is the default settings of terminal
 
@@ -235,14 +236,20 @@ char* editorPrompt(char *prompt, void (*callback)(char *, int)){
     size_t bufferSize = 128;
     char *buffer = (char *)malloc(bufferSize);
 
+    if (buffer == NULL) {
+        E.logger->error(E.logger, "editorPrompt malloc memory is null");
+        return NULL;
+    }
+
     size_t bufferLength = 0;
     buffer[0] = '\0';
 
     while (true){
+        int c = editorReadKey();
+        editorAppendActionBuffer(c);
         editorSetStatusMessage(prompt, buffer);
         editorRefreshScreen(&E);
 
-        int c = editorReadKey();
         if(c == DEL_KEY || c == CTRL_KEY('h') || c == BACKSPACE){
             if(bufferLength != 0){
                 buffer[--bufferLength] = '\0';

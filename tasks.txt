@@ -7,5 +7,6 @@ finish vim bindings then add regular editor bindings
 line numbers + control of them relative vs absolute
 version control integration
 firgure out and add an add-ons system
-fix the exiting bug
 further split the project to allow for modularity for things such as ncurses
+fix the status bar not showing the input values
+Need to split apart the rendering of the status bar and the action buffer

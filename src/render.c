@@ -76,13 +76,13 @@ void abFree(struct AppendBuffer *ab){
     free(ab->b);
 }
 
-void editorDrawMessageBar(struct Editor* E, struct AppendBuffer *ab){
+void editorDrawMessageBar(struct Editor* E, struct AppendBuffer *ab) {
     abAppend(ab, "\x1b[K", 3);
     int messageLength = strlen(E->editors[E->screenNumber].statusMessage);
-    if (messageLength > E->editors[E->screenNumber].screenColumns){
+    if (messageLength > E->editors[E->screenNumber].screenColumns) {
         messageLength = E->editors[E->screenNumber].screenColumns;
     }
-    if (messageLength && time(NULL) - E->editors[E->screenNumber].statusMessage_time < 5){
+    if (messageLength && time(NULL) - E->editors[E->screenNumber].statusMessage_time < 5) {
         abAppend(ab, E->editors[E->screenNumber].statusMessage, messageLength);
     }
 }
@@ -112,7 +112,7 @@ void editorDrawRows(struct Editor* E, struct AppendBuffer *ab){
                         abAppend(ab, " ",  1);
                     }
                     abAppend(ab, welcome, welcomeLength);
-                } else{
+                } else {
                     abAppend(ab, "~", 1);
                 }
             } else {
@@ -134,12 +134,12 @@ void editorDrawRows(struct Editor* E, struct AppendBuffer *ab){
                         abAppend(ab, "\x1b[7m", 4);
                         abAppend(ab, &sym, 1);
                         abAppend(ab, "\x1b[m", 3);
-                        if(current_color != -1){
+                        if(current_color != -1) {
                             char buf[16];
                             int clen = snprintf(buf, sizeof(buf), "\x1b[%dm", current_color);
                             abAppend(ab, buf, clen);
                         }
-                    } else if(highLight[j] == HL_NORMAL){
+                    } else if(highLight[j] == HL_NORMAL) {
                         if(current_color != -1){
                             abAppend(ab, "\x1b[39m", 5);
                             current_color = -1;
